@@ -4,6 +4,7 @@ import {
   ChevronRight,
   Eye,
   Landmark,
+  SlidersHorizontal,
   Swords,
   UserPlus,
   X,
@@ -64,6 +65,7 @@ export const SelectedProvinceBar: React.FC<SelectedProvinceBarProps> = ({
   onOpenBattleOverview,
   onClear,
 }) => {
+  const [actionsOpen, setActionsOpen] = React.useState(false);
   const owner = nations[territory.ownerId];
   if (!owner) return null;
 
@@ -298,7 +300,22 @@ export const SelectedProvinceBar: React.FC<SelectedProvinceBarProps> = ({
               </button>
             )}
 
-          {isPlayerOwned && territory.garrison >= 300 && (
+          <button
+            type="button"
+            onClick={() => setActionsOpen((open) => !open)}
+            aria-expanded={actionsOpen}
+            aria-label="Eyalet eylemlerini aç veya kapat"
+            className={`min-h-[36px] px-2.5 rounded-xl border text-[11px] font-bold flex items-center justify-center gap-1 transition-colors ${
+              actionsOpen
+                ? 'bg-sky-500 text-slate-950 border-sky-400'
+                : 'bg-slate-900/90 text-slate-300 border-slate-700 hover:text-white'
+            }`}
+          >
+            <SlidersHorizontal className="w-3.5 h-3.5 shrink-0" />
+            <span>{actionsOpen ? 'Kapat' : 'Eylemler'}</span>
+          </button>
+
+          {actionsOpen && isPlayerOwned && territory.garrison >= 300 && (
             <button
               onClick={() => {
                 sound.playClick();
@@ -315,7 +332,7 @@ export const SelectedProvinceBar: React.FC<SelectedProvinceBarProps> = ({
             </button>
           )}
 
-          {isPlayerOwned && (
+          {actionsOpen && isPlayerOwned && (
             <button
               onClick={() => {
                 sound.playClick();
@@ -329,7 +346,7 @@ export const SelectedProvinceBar: React.FC<SelectedProvinceBarProps> = ({
             </button>
           )}
 
-          {!isPlayerOwned && (
+          {actionsOpen && !isPlayerOwned && (
             <button
               onClick={() => {
                 sound.playClick();

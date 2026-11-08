@@ -324,3 +324,9 @@ AOH3 referans görselleri `references/aoh3/` klasöründe saklanıyor. İlk değ
 ### Sistem rail doğrulaması
 
 Alt navigasyon masaüstünde 1280×720 Chrome görünümünde sol tarafta kompakt dikey sistem rail’i olarak doğrulandı. Eyalet, ekonomi, diplomasi, yönetim ve ordugâh girişleri ikon + kısa etiketlerle tek yerde toplandı. 896×414 dar yatay Chrome görünümünde mobil kullanıcılar için alt yatay dokunma çubuğu korundu; böylece masaüstü AOH3 hiyerarşisi ile mobil erişilebilirlik birlikte sürdürüldü.
+
+## Mobil Seçili Eyalet Paneli Sadeleştirme (2026-11-08)
+
+Seçili eyalet alt şeridinde normal yardımcı eylemler artık varsayılan olarak kapalı bir `Eylemler` grubunda. Savaş/kuşatma bildirimi varsa görünür kalıyor; ana bağlam düğmesi `İnşa & Eyalet` veya `İncele` olarak kalıyor. Kullanıcı `Eylemler`e dokunduğunda yalnızca o eyalete uygun Sefer, hızlı asker toplama veya Diplomasi eylemi açılıyor. Bu düzen AOH3’teki bağlamsal panel yaklaşımına daha yakın ve telefonda yatay buton sıkışmasını azaltıyor.
+
+Chrome doğrulaması: yabancı eyalet seçimi ve Eylemler açılımı mobil viewport’ta başarılı. Production build başarılı. TypeScript kontrolü yalnızca mevcut `geojson` tip paketi eksikliği nedeniyle başarısız; yeni panel JSX hatası giderildi.
