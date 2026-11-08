@@ -1,0 +1,8 @@
+{
+  "name": "Imperium 2026: Grand Strategy",
+  "description": "Age of History 3 tarzı duraklatılabilir gerçek zamanlı dünya haritası, derin diplomasi, koalisyonlar, ekonomi, teknoloji ağacı ve ideoloji yönetimi sunan 2D büyük strateji oyunu.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
