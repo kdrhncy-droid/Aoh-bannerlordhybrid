@@ -17,6 +17,7 @@ import {
 } from '../map/spatialIndex';
 import { useMapGestures } from '../map/useMapGestures';
 import { performanceTelemetry } from '../utils/performanceTelemetry';
+import type { MapLabelDensityOption } from '../engine/gameSettings';
 import {
   ActiveBattle,
   ActiveWar,
@@ -39,6 +40,7 @@ interface WorldMapCanvasProps {
   selectedTerritoryId: string | null;
   armyOrderSourceId: string | null;
   mapMode: MapMode;
+  mapLabelDensity?: MapLabelDensityOption;
   fogOfWarEnabled?: boolean;
   showZoomControls?: boolean;
   onSelectTerritory: (territoryId: string | null) => void;
@@ -58,6 +60,7 @@ export const WorldMapCanvas: React.FC<WorldMapCanvasProps> = ({
   selectedTerritoryId,
   armyOrderSourceId,
   mapMode,
+  mapLabelDensity = 'BALANCED',
   fogOfWarEnabled = true,
   showZoomControls = true,
   onSelectTerritory,
@@ -372,6 +375,7 @@ export const WorldMapCanvas: React.FC<WorldMapCanvasProps> = ({
       battles,
       projection,
       mapMode,
+      mapLabelDensity,
       playerNationId,
       selectedTerritoryId,
       armyOrderSourceId,
@@ -385,6 +389,7 @@ export const WorldMapCanvas: React.FC<WorldMapCanvasProps> = ({
     battles,
     features,
     fogOfWarEnabled,
+    mapLabelDensity,
     mapMode,
     movements,
     nations,

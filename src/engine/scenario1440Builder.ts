@@ -602,6 +602,7 @@ export function transformBundleTo1440Scenario(
       treasury: Math.round(emp.treasury * 0.45),
       manpower: emp.manpower,
       researchPoints: isOttoman ? 65 : 50,
+      researchProgressByTech: {},
       unlockedTechs: ['eco_1'],
       modernizedArmyTier: 0,
       recruitedGeneralIds: isOttoman ? ['cmd_candarli'] : [],
@@ -739,16 +740,22 @@ export function transformBundleTo1440Scenario(
   ) => {
     if (!nations[a] || !nations[b]) return;
     const key = relationKey(a, b);
+    const nationA = a < b ? a : b;
+    const nationB = a < b ? b : a;
+    const embargoingNationIds =
+      partial.embargoingNationIds ??
+      (partial.hasEmbargo ? [nationA] : []);
     relations[key] = {
-      nationA: a < b ? a : b,
-      nationB: a < b ? b : a,
+      nationA,
+      nationB,
       score: partial.score ?? 0,
       isAllied: partial.isAllied ?? false,
       allianceType:
         partial.allianceType ?? (partial.isAllied ? 'OFFENSIVE' : null),
       hasNonAggression: partial.hasNonAggression ?? false,
       hasTradeAgreement: partial.hasTradeAgreement ?? false,
-      hasEmbargo: partial.hasEmbargo ?? false,
+      hasEmbargo: embargoingNationIds.length > 0,
+      embargoingNationIds,
       hasMilitaryAccess: partial.hasMilitaryAccess ?? false,
       truceUntilTick: 0,
     };

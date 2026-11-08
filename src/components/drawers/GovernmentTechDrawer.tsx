@@ -420,7 +420,7 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                               onClick={onCancelResearch}
                               className="min-h-[36px] px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-rose-950/80 hover:text-rose-300 border border-slate-700 text-xs font-semibold text-slate-300 transition-colors"
                             >
-                              Durdur
+                              Duraklat
                             </button>
                           )}
                         </div>
@@ -482,6 +482,25 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                       );
                       const isActivelyResearching =
                         activeProj?.techId === tech.id;
+                      const savedProgressValue =
+                        playerNation.researchProgressByTech?.[tech.id] ?? 0;
+                      const savedProgress = Number.isFinite(savedProgressValue)
+                        ? Math.max(0, savedProgressValue)
+                        : 0;
+                      const hasSavedProgress =
+                        !isActivelyResearching && savedProgress > 0;
+                      const progressForTech = isActivelyResearching
+                        ? activeProj?.progress ?? 0
+                        : savedProgress;
+                      const progressTotalForTech = isActivelyResearching
+                        ? activeProj?.totalCost ?? tech.cost
+                        : tech.cost;
+                      const progressPctForTech = Math.min(
+                        100,
+                        Math.round(
+                          (progressForTech / Math.max(1, progressTotalForTech)) * 100
+                        )
+                      );
                       const prereqMet =
                         !tech.prerequisite ||
                         playerNation.unlockedTechs.includes(tech.prerequisite);
@@ -530,6 +549,11 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                                   Araştırılıyor
                                 </span>
                               )}
+                              {hasSavedProgress && (
+                                <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-500/20 text-amber-200 border border-amber-400/30">
+                                  Beklemede · %{progressPctForTech}
+                                </span>
+                              )}
                             </div>
                             <p className="hidden sm:block text-xs text-slate-400 mt-1 line-clamp-1">
                               {tech.description}
@@ -538,12 +562,16 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                               {tech.effectLabel}
                             </div>
 
-                            {isActivelyResearching && (
+                            {(isActivelyResearching || hasSavedProgress) && (
                               <div className="mt-2 w-full max-w-xs h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
                                 <div
-                                  className="h-full bg-sky-400 transition-all rounded-full"
+                                  className={`h-full transition-all rounded-full ${
+                                    isActivelyResearching
+                                      ? 'bg-sky-400'
+                                      : 'bg-amber-400'
+                                  }`}
                                   style={{
-                                    width: `${Math.max(4, activePct)}%`,
+                                    width: `${Math.max(4, progressPctForTech)}%`,
                                   }}
                                 />
                               </div>
@@ -587,9 +615,9 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                               ) : isActivelyResearching ? (
                                 `%${activePct} (${activeEstDays}g)`
                               ) : !prereqMet ? (
-                                `Kilitli (${
-                                  prereqDef?.name || 'Önceki Kademe'
-                                })`
+                                `Kilitli (${prereqDef?.name || 'Önceki Kademe'})`
+                              ) : hasSavedProgress ? (
+                                'Devam Et'
                               ) : (
                                 'Araştırmaya Başla'
                               )}

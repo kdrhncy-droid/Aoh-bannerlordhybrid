@@ -2,7 +2,12 @@ import React from "react";
 import { Swords, Handshake, Crown, Ban, AlertTriangle, Coins, Shield, ArrowRight } from "lucide-react";
 import { ActiveWar, DiplomaticRelation, Nation, Territory } from "../../types/game";
 import { DiplomaticActionType, PeaceDealType } from "./drawerTypes";
-import { getOrCreateRelation, isAtWar } from "../../engine/simulationEngine";
+import {
+  getOrCreateRelation,
+  getWarScoreForNation,
+  isAtWar,
+} from "../../engine/simulationEngine";
+import { isNationEmbargoing } from "../../engine/embargoUtils";
 import { sound } from "../../utils/soundEngine";
 
 interface ProvinceForeignDiplomacyPanelProps {
@@ -44,11 +49,22 @@ export const ProvinceForeignDiplomacyPanel: React.FC<ProvinceForeignDiplomacyPan
                         playerNation.id,
                         selectedOwner.id
                       );
+                      const playerEmbargoActive = isNationEmbargoing(
+                        rel,
+                        playerNation.id
+                      );
+                      const targetEmbargoActive = isNationEmbargoing(
+                        rel,
+                        selectedOwner.id
+                      );
                       const activeWar = isAtWar(
                         wars,
                         playerNation.id,
                         selectedOwner.id
                       );
+                      const playerWarScore = activeWar
+                        ? getWarScoreForNation(activeWar, playerNation.id)
+                        : null;
 
                       return (
                         <>
@@ -144,8 +160,11 @@ export const ProvinceForeignDiplomacyPanel: React.FC<ProvinceForeignDiplomacyPan
 
                             {activeWar ? (
                               <span className="text-xs font-bold text-rose-400">
-                                SAVAŞ DURUMUNDA (Skor: %
-                                {activeWar.attackerWarScore})
+                                SAVAŞTA · Senin tarafın:{' '}
+                                {playerWarScore !== null && playerWarScore > 0
+                                  ? '+'
+                                  : ''}
+                                {playerWarScore ?? activeWar.attackerWarScore}%
                               </span>
                             ) : (
                               <span className="text-xs text-slate-400">
@@ -157,8 +176,10 @@ export const ProvinceForeignDiplomacyPanel: React.FC<ProvinceForeignDiplomacyPan
                                   ? 'Resmi Müttefik'
                                   : rel.hasTradeAgreement
                                   ? 'Ticaret Ortağı'
-                                  : rel.hasEmbargo
-                                  ? 'Ambargo Altında'
+                                  : targetEmbargoActive
+                                  ? 'Bu ülke sana ambargo uyguluyor'
+                                  : playerEmbargoActive
+                                  ? 'Sen bu ülkeye ambargo uyguluyorsun'
                                   : 'Tarafsız İlişki'}
                               </span>
                             )}
@@ -210,7 +231,7 @@ export const ProvinceForeignDiplomacyPanel: React.FC<ProvinceForeignDiplomacyPan
                                 <div className="text-xs font-bold text-white">
                                   {rel.hasTradeAgreement
                                     ? 'Ticaret Anlaşması Aktif'
-                                    : 'Ticaret Anlaşması Teklif Et'}
+                                    : 'Ticaret Anlaşması Kur'}
                                 </div>
                                 <div className="text-[11px] text-amber-400">
                                   +%14 Karşılıklı Ticaret Geliri
@@ -254,10 +275,12 @@ export const ProvinceForeignDiplomacyPanel: React.FC<ProvinceForeignDiplomacyPan
                                 <div className="text-xs font-bold text-white">
                                   {rel.hasMilitaryAccess
                                     ? 'Askeri Geçiş İzni Aktif'
-                                    : 'Askeri Geçiş İzni İste'}
+                                    : 'Askeri Geçiş İzni Al'}
                                 </div>
                                 <div className="text-[11px] text-indigo-400">
-                                  +10 İlişki & Lojistik Koridor
+                                  {rel.hasMilitaryAccess
+                                    ? 'Lojistik Koridor Açık · İptal İlişki Puanı Vermez'
+                                    : '+8 İlişki · Lojistik Koridor'}
                                 </div>
                               </div>
                               <ArrowRight className="w-4 h-4 text-indigo-400 shrink-0" />
@@ -279,7 +302,7 @@ export const ProvinceForeignDiplomacyPanel: React.FC<ProvinceForeignDiplomacyPan
                                   <span>
                                     {rel.allianceType === 'DEFENSIVE'
                                       ? '🛡️ Savunma Paktı Aktif'
-                                      : '🛡️ Savunma Paktı Teklifi'}
+                                      : '🛡️ Savunma Paktı Kur'}
                                   </span>
                                   {rel.allianceType === 'DEFENSIVE' && (
                                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/30 text-sky-200 font-semibold">
@@ -318,7 +341,7 @@ export const ProvinceForeignDiplomacyPanel: React.FC<ProvinceForeignDiplomacyPan
                                   <span>
                                     {rel.allianceType === 'OFFENSIVE'
                                       ? '⚔️ Saldırı Paktı Aktif'
-                                      : '⚔️ Saldırı Paktı & Koalisyon'}
+                                      : '⚔️ Saldırı Paktı Kur'}
                                   </span>
                                   {rel.allianceType === 'OFFENSIVE' && (
                                     <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/30 text-emerald-200 font-semibold">
@@ -349,12 +372,19 @@ export const ProvinceForeignDiplomacyPanel: React.FC<ProvinceForeignDiplomacyPan
                             >
                               <div>
                                 <div className="text-xs font-bold text-white">
-                                  {rel.hasEmbargo
+                                  {playerEmbargoActive
                                     ? 'Ambargoyu Kaldır'
                                     : 'Ticaret Ambargosu Uygula'}
                                 </div>
                                 <div className="text-[11px] text-orange-400">
-                                  Hedefin ticaret gelirini %18 düşürür
+                                  {playerEmbargoActive
+                                    ? 'Hedefin ticaret geliri %18 azalıyor.'
+                                    : 'Uygularsan hedefin ticaret geliri %18 düşer.'}
+                                  {targetEmbargoActive && (
+                                    <span className="ml-1 text-rose-300">
+                                      Bu ülke de sana ambargo uyguluyor.
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                               <Ban className="w-4 h-4 text-orange-400 shrink-0" />

@@ -35,11 +35,13 @@ import {
   AUTO_SAVE_OPTIONS,
   CRISIS_FREQUENCY_OPTIONS,
   GameSettings,
+  MAP_LABEL_DENSITY_OPTIONS,
   UI_SCALE_OPTIONS,
 } from '../engine/gameSettings';
 import { music, MUSIC_TRACKS } from '../engine/musicEngine';
 import { PWAInstallButton } from './PWAInstallButton';
 import { sound } from '../utils/soundEngine';
+import { useAccessibleDialog } from '../hooks/useAccessibleDialog';
 
 interface SystemAndSaveModalProps {
   isOpen: boolean;
@@ -77,6 +79,7 @@ export const SystemAndSaveModal: React.FC<SystemAndSaveModalProps> = ({
   const [slots, setSlots] = useState<Record<SaveSlotId, SaveSlotMetadata | null>>(
     () => listAllSaveSlots()
   );
+  const dialogRef = useAccessibleDialog(isOpen, onClose);
 
   if (!isOpen) return null;
 
@@ -147,12 +150,19 @@ export const SystemAndSaveModal: React.FC<SystemAndSaveModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-md">
-      <div className="w-full max-w-2xl max-h-[90dvh] bg-slate-900 border border-slate-700/90 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="system-settings-title"
+        tabIndex={-1}
+        className="w-full max-w-2xl max-h-[90dvh] bg-slate-900 border border-slate-700/90 rounded-3xl shadow-2xl flex flex-col overflow-hidden text-slate-100"
+      >
         {/* Modal Header with Tab Switcher */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-slate-800 bg-slate-950/90 shrink-0">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-display text-lg font-bold text-white">
+              <h2 id="system-settings-title" className="font-display text-lg font-bold text-white">
                 Sistem Ayarları & Kayıt Merkezi
               </h2>
               <p className="text-xs text-slate-400">
@@ -161,6 +171,7 @@ export const SystemAndSaveModal: React.FC<SystemAndSaveModalProps> = ({
             </div>
             <button
               onClick={onClose}
+              aria-label="Sistem menüsünü kapat"
               className="sm:hidden min-w-[42px] min-h-[42px] rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 flex items-center justify-center text-slate-300"
             >
               <X className="w-5 h-5" />
@@ -202,6 +213,7 @@ export const SystemAndSaveModal: React.FC<SystemAndSaveModalProps> = ({
 
             <button
               onClick={onClose}
+              aria-label="Sistem menüsünü kapat"
               className="hidden sm:flex min-w-[42px] min-h-[42px] rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-800 items-center justify-center text-slate-300"
             >
               <X className="w-5 h-5" />
@@ -236,12 +248,12 @@ export const SystemAndSaveModal: React.FC<SystemAndSaveModalProps> = ({
                 {soundEnabled ? (
                   <>
                     <Volume2 className="w-4 h-4 text-emerald-400 shrink-0" />
-                    <span>Ses: Açık</span>
+                    <span>Efekt sesleri: Açık</span>
                   </>
                 ) : (
                   <>
                     <VolumeX className="w-4 h-4 text-slate-500 shrink-0" />
-                    <span>Ses: Kapalı</span>
+                    <span>Efekt sesleri: Kapalı</span>
                   </>
                 )}
               </button>
@@ -494,6 +506,37 @@ export const SystemAndSaveModal: React.FC<SystemAndSaveModalProps> = ({
                 </div>
 
                 {/* AoH3 UI Scale Selector */}
+                <div className="pt-3 border-t border-slate-800/80 space-y-2">
+                  <div>
+                    <h3 className="text-xs font-bold text-white">Harita etiket yoğunluğu</h3>
+                    <p className="text-[11px] text-slate-400 mt-0.5">Başkent ve eyalet adlarının hangi yakınlaştırmada görüneceğini seçin.</p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    {MAP_LABEL_DENSITY_OPTIONS.map((option) => {
+                      const selected = settings.mapLabelDensity === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => {
+                            sound.playClick();
+                            onUpdateSettings({ mapLabelDensity: option.value });
+                          }}
+                          className={`min-h-[44px] p-2.5 rounded-xl border text-left transition-colors ${
+                            selected
+                              ? 'bg-amber-500/20 border-amber-500 text-white'
+                              : 'bg-slate-900 border-slate-800 text-slate-300 hover:border-slate-700'
+                          }`}
+                        >
+                          <span className="block text-xs font-bold">{option.label}</span>
+                          <span className="block text-[11px] text-slate-400 mt-0.5">{option.desc}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
                 <div className="pt-2 border-t border-slate-800/80 space-y-2">
                   <div className="text-xs font-bold text-amber-300">
                     Age of History 3 Mobil & Ekran UI Ölçeği (0 / 1 / 2):

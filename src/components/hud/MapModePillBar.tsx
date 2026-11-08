@@ -194,29 +194,32 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
       {/* Floating AoH3 Map Legend Card for Religion / Culture / Assimilation */}
       {hasLegend && (
         <div className="absolute bottom-20 left-2.5 z-20 pointer-events-auto max-w-[260px] sm:max-w-[290px] bg-[#090e1a]/95 rounded-xl border border-amber-500/35 shadow-2xl backdrop-blur-md overflow-hidden text-slate-200">
-          <div
+          <button
+            type="button"
             onClick={() => setLegendOpen(!legendOpen)}
-            className="flex items-center justify-between px-2.5 py-1.5 bg-slate-900/80 cursor-pointer select-none border-b border-slate-800"
+            aria-expanded={legendOpen}
+            aria-controls="map-mode-legend-content"
+            className="w-full min-h-[44px] flex items-center justify-between px-2.5 py-1.5 bg-slate-900/80 cursor-pointer select-none border-b border-slate-800 text-left"
           >
             <div className="flex items-center gap-1.5 text-xs font-bold text-amber-300">
-              <Info className="w-3.5 h-3.5 text-amber-400" />
+              <Info aria-hidden="true" className="w-3.5 h-3.5 text-amber-400" />
               <span>
                 {mapMode === 'RELIGION' && 'Din Haritası Lejantı'}
                 {mapMode === 'CULTURE' && 'Kültür Haritası Lejantı'}
                 {mapMode === 'ASSIMILATION' && 'Asimilasyon (Core) Lejantı'}
               </span>
             </div>
-            <button className="text-slate-400 hover:text-white p-0.5">
+            <span aria-hidden="true" className="text-slate-400 hover:text-white p-0.5">
               {legendOpen ? (
                 <ChevronDown className="w-3.5 h-3.5" />
               ) : (
                 <ChevronUp className="w-3.5 h-3.5" />
               )}
-            </button>
-          </div>
+            </span>
+          </button>
 
           {legendOpen && (
-            <div className="p-2 flex flex-col gap-1.5 max-h-[175px] sm:max-h-[210px] overflow-y-auto no-scrollbar text-[11px]">
+            <div id="map-mode-legend-content" className="p-2 flex flex-col gap-1.5 max-h-[175px] sm:max-h-[210px] overflow-y-auto no-scrollbar text-[11px]">
               {mapMode === 'RELIGION' &&
                 Object.values(RELIGIONS).map((r) => (
                   <div
@@ -309,11 +312,16 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
         </div>
       )}
 
-      {toastMessage && (
-        <div className="hud-toast-banner absolute top-20 left-1/2 -translate-x-1/2 z-30 px-3.5 py-2 rounded-xl bg-[#090e1a]/96 border border-amber-500/60 text-xs font-semibold text-amber-200 shadow-2xl whitespace-nowrap max-w-[92vw] truncate pointer-events-none">
-          {toastMessage}
-        </div>
-      )}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className={toastMessage
+          ? 'hud-toast-banner absolute top-20 left-1/2 z-30 px-3.5 py-2 rounded-xl bg-[#090e1a]/96 border border-amber-500/60 text-xs font-semibold text-amber-200 shadow-2xl max-w-[92vw] max-h-[30vh] overflow-y-auto whitespace-normal break-words [overflow-wrap:anywhere] text-center leading-relaxed pointer-events-none'
+          : 'sr-only'}
+      >
+        {toastMessage ?? ''}
+      </div>
     </>
   );
 };

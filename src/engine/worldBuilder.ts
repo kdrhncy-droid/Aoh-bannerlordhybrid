@@ -104,6 +104,7 @@ export function initializeWorld2026(modeId: GameModeId): InitialWorldBundle {
       inflation: 4.2,
       researchPoints:
         modeId === 'SANDBOX_EMPIRE' ? 500 : isMajorPower ? 65 : 30,
+      researchProgressByTech: {},
       taxRate: 25,
       budget: {
         military: 30,
@@ -368,16 +369,22 @@ export function initializeWorld2026(modeId: GameModeId): InitialWorldBundle {
   ) => {
     if (!nations[a] || !nations[b]) return;
     const key = relationKey(a, b);
+    const nationA = a < b ? a : b;
+    const nationB = a < b ? b : a;
+    const embargoingNationIds =
+      partial.embargoingNationIds ??
+      (partial.hasEmbargo ? [nationA] : []);
     relations[key] = {
-      nationA: a < b ? a : b,
-      nationB: a < b ? b : a,
+      nationA,
+      nationB,
       score: partial.score ?? 0,
       isAllied: partial.isAllied ?? false,
       allianceType:
         partial.allianceType ?? (partial.isAllied ? 'DEFENSIVE' : null),
       hasNonAggression: partial.hasNonAggression ?? false,
       hasTradeAgreement: partial.hasTradeAgreement ?? false,
-      hasEmbargo: partial.hasEmbargo ?? false,
+      hasEmbargo: embargoingNationIds.length > 0,
+      embargoingNationIds,
       hasMilitaryAccess: partial.hasMilitaryAccess ?? false,
       truceUntilTick: 0,
     };

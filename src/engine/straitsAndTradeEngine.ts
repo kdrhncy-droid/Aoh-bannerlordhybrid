@@ -6,6 +6,7 @@ import {
   Territory,
 } from '../types/game';
 import { getOrCreateRelation, isAtWar } from './simulationEngine';
+import { isNationEmbargoed } from './embargoUtils';
 
 export interface StrategicStraitDef {
   id: string;
@@ -330,6 +331,16 @@ export interface NationTradeAndStraitsSummary {
   }[];
 }
 
+export function calculateBlockadedCorridorIncome(
+  rawShareGold: number,
+  lossRatio: number
+): { dailyIncome: number; blockadePenaltyLoss: number } {
+  const gross = Math.max(0, Math.round(rawShareGold));
+  const ratio = Math.max(0, Math.min(1, lossRatio));
+  const loss = Math.min(gross, Math.max(0, Math.round(gross * ratio)));
+  return { dailyIncome: gross - loss, blockadePenaltyLoss: loss };
+}
+
 export function calculateNationTradeAndStraits(params: {
   nationId: string;
   gameMode?: GameModeId;
@@ -422,7 +433,7 @@ export function calculateNationTradeAndStraits(params: {
           isAtWar(wars, nationId, shore.ownerId)
         );
         const rel = getOrCreateRelation(relations, nationId, shore.ownerId);
-        if (atWarWithController || rel.hasEmbargo) {
+        if (atWarWithController || isNationEmbargoed(rel, nationId)) {
           isBlockadedByEnemy = true;
           break;
         }
@@ -438,9 +449,12 @@ export function calculateNationTradeAndStraits(params: {
     if (isBlockadedByEnemy) {
       const mitigation = Math.min(0.55, guardProtectionBonus);
       const lossRatio = 0.42 * (1 - mitigation);
-      const lost = Math.max(4, Math.round(rawShareGold * lossRatio));
-      blockadePenaltyLoss += lost;
-      finalGold = Math.max(4, rawShareGold - lost);
+      const blockadedIncome = calculateBlockadedCorridorIncome(
+        rawShareGold,
+        lossRatio
+      );
+      blockadePenaltyLoss += blockadedIncome.blockadePenaltyLoss;
+      finalGold = blockadedIncome.dailyIncome;
     }
 
     caravanTradeIncome += finalGold;

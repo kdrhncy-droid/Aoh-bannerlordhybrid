@@ -205,6 +205,23 @@ export function hydrateSavedPayload(
       return;
     }
     const merged = baseN ? { ...baseN, ...savedN } : savedN;
+    const researchProgressByTech: Record<string, number> = {};
+    const savedResearchProgress = merged.researchProgressByTech;
+    if (savedResearchProgress && typeof savedResearchProgress === 'object' && !Array.isArray(savedResearchProgress)) {
+      Object.entries(savedResearchProgress).forEach(([techId, progress]) => {
+        if (Number.isFinite(progress) && progress >= 0) {
+          researchProgressByTech[techId] = progress;
+        }
+      });
+    }
+    const activeResearch = merged.activeResearch;
+    if (
+      activeResearch &&
+      typeof activeResearch.techId === 'string' &&
+      Number.isFinite(activeResearch.progress)
+    ) {
+      researchProgressByTech[activeResearch.techId] = Math.max(0, activeResearch.progress);
+    }
     mergedNations[nId] = {
       ...merged,
       treasury: Number.isFinite(merged.treasury) ? merged.treasury : 1200,
@@ -214,6 +231,7 @@ export function hydrateSavedPayload(
       researchPoints: Number.isFinite(merged.researchPoints)
         ? merged.researchPoints
         : 60,
+      researchProgressByTech,
       taxRate: Number.isFinite(merged.taxRate) ? merged.taxRate : 25,
       unlockedTechs: Array.isArray(merged.unlockedTechs)
         ? merged.unlockedTechs

@@ -16,6 +16,7 @@ import {
   WorldNewsEvent,
 } from '../types/game';
 import { sound } from '../utils/soundEngine';
+import { useAccessibleDialog } from '../hooks/useAccessibleDialog';
 
 interface CrisisAndNewsModalProps {
   activeCrisis: CrisisEventDefinition | null;
@@ -34,12 +35,31 @@ export const CrisisAndNewsModal: React.FC<CrisisAndNewsModalProps> = ({
   newsEvents,
   onTriggerManualCabinetDecision,
 }) => {
+  const crisisDialogRef = useAccessibleDialog(
+    Boolean(activeCrisis),
+    () => undefined,
+    { closeOnEscape: false }
+  );
+  const accessibleNewsOpen = showNewsDrawer && !activeCrisis;
+  const newsDialogRef = useAccessibleDialog(
+    accessibleNewsOpen,
+    onCloseNewsDrawer
+  );
+
   return (
     <>
       {/* 1. Interactive Crisis / Opportunity Decision Modal */}
       {activeCrisis && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-          <div className="w-full max-w-lg rounded-2xl bg-slate-900 border border-amber-500/50 p-5 sm:p-6 shadow-2xl text-slate-100 space-y-4">
+          <div
+            ref={crisisDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="crisis-dialog-title"
+            aria-describedby="crisis-dialog-description"
+            tabIndex={-1}
+            className="w-full max-w-lg rounded-2xl bg-slate-900 border border-amber-500/50 p-5 sm:p-6 shadow-2xl text-slate-100 space-y-4"
+          >
             <div className="flex items-start justify-between gap-3 border-b border-slate-800 pb-3">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center shrink-0">
@@ -49,14 +69,14 @@ export const CrisisAndNewsModal: React.FC<CrisisAndNewsModalProps> = ({
                   <div className="text-[11px] font-semibold text-amber-400">
                     Ulusal Kabine Gündemi · {activeCrisis.category}
                   </div>
-                  <h3 className="font-display text-base sm:text-lg font-bold text-white">
+                  <h3 id="crisis-dialog-title" className="font-display text-base sm:text-lg font-bold text-white">
                     {activeCrisis.title}
                   </h3>
                 </div>
               </div>
             </div>
 
-            <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
+            <p id="crisis-dialog-description" className="text-xs sm:text-sm text-slate-300 leading-relaxed">
               {activeCrisis.description}
             </p>
 
@@ -90,14 +110,21 @@ export const CrisisAndNewsModal: React.FC<CrisisAndNewsModalProps> = ({
       )}
 
       {/* 2. Live World News Feed Drawer */}
-      {showNewsDrawer && (
+      {accessibleNewsOpen && (
         <div className="fixed inset-0 z-40 flex justify-end bg-black/50 backdrop-blur-xs">
-          <div className="w-full max-w-md h-full bg-slate-950/95 border-l border-slate-800 flex flex-col shadow-2xl">
+          <div
+            ref={newsDialogRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="news-dialog-title"
+            tabIndex={-1}
+            className="w-full max-w-md h-full bg-slate-950/95 border-l border-slate-800 flex flex-col shadow-2xl"
+          >
             <div className="flex items-center justify-between px-5 py-4 border-b border-slate-800">
               <div className="flex items-center gap-2.5">
                 <Newspaper className="w-5 h-5 text-amber-400" />
                 <div>
-                  <h3 className="font-display text-base font-bold text-white">
+                  <h3 id="news-dialog-title" className="font-display text-base font-bold text-white">
                     Canlı Dünya Haber Ajansı
                   </h3>
                   <p className="text-[11px] text-slate-400">
@@ -110,6 +137,7 @@ export const CrisisAndNewsModal: React.FC<CrisisAndNewsModalProps> = ({
                   sound.playClick();
                   onCloseNewsDrawer();
                 }}
+                aria-label="Haberler panelini kapat"
                 className="min-w-[40px] min-h-[40px] rounded-xl flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800"
               >
                 <X className="w-5 h-5" />

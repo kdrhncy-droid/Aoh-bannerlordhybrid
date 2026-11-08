@@ -141,26 +141,26 @@ export const BUILDINGS: BuildingDefinition[] = [
   {
     id: 'factory',
     name: 'Sanayi Kompleksi',
-    description: 'Bölgenin günlük vergi ve üretim gelirini kalıcı olarak artırır.',
+    description: 'Eyaletin üretim tabanını büyütür; bu artış vergi, üretim ve iç pazar gelirlerine yansır.',
     baseCost: 450,
     maxLevel: 5,
-    effectSummary: '+%25 Bölge Geliri / Seviye',
+    effectSummary: '+%25 Eyalet GDP çarpanı / Seviye',
   },
   {
     id: 'barracks',
     name: 'Modern Kışla & Karargah',
-    description: 'İnsan gücü katılımını artırır ve bölgede toplanan ordulara disiplin kazandırır.',
+    description: 'Ulusal günlük insan gücü havuzuna katkı sağlar.',
     baseCost: 400,
     maxLevel: 5,
-    effectSummary: '+350 Günlük İnsan Gücü & Hızlı Seferberlik',
+    effectSummary: '+350 İnsan Gücü Tabanı / Seviye',
   },
   {
     id: 'fortress',
     name: 'Hava Savunma & Tahkimat',
-    description: 'Düşman işgalini yavaşlatır ve savunan orduya yüksek siper bonusu verir.',
+    description: 'Sur bütünlüğüne bağlı olarak savunma gücünü artırır ve kuşatmayı yavaşlatır.',
     baseCost: 500,
     maxLevel: 5,
-    effectSummary: '+%22 Savunma Bonusu / Seviye',
+    effectSummary: 'Sur dayanıklılığı ve kuşatma direnci artar',
   },
   {
     id: 'university',
@@ -168,23 +168,23 @@ export const BUILDINGS: BuildingDefinition[] = [
     description: 'Teknoloji ağacı ve ulusal reformlar için günlük araştırma puanı üretir.',
     baseCost: 550,
     maxLevel: 5,
-    effectSummary: '+4.5 Araştırma Puanı / Seviye',
+    effectSummary: '+4,5 Günlük Araştırma Puanı / Seviye',
   },
   {
     id: 'tradeHub',
     name: 'Uluslararası Lojistik Limanı',
-    description: 'Stratejik kaynak ihracatını büyütür ve enflasyonu düşürmeye yardımcı olur.',
+    description: 'Ulusal ticaret geliri çarpanını ve bulunduğu eyaletin uluslararası ticaret koridoru ağırlığını artırır; bütün liman seviyeleri günlük enflasyon azalımına katkı verir.',
     baseCost: 480,
     maxLevel: 5,
-    effectSummary: '+%20 Ticaret Geliri & -%0.2 Enflasyon',
+    effectSummary: '+%20 Ticaret Geliri Çarpanı / Seviye · Koridor merkeziyse +16 Ağırlık/Seviye · −0,02 Enflasyon Puanı/Gün/Seviye (en çok −0,20/gün)',
   },
   {
     id: 'supplyDepot',
     name: 'İkmal ve Refah Merkezi',
-    description: 'Bölgedeki isyan riskini (Unrest) düşürür ve nüfus artışını destekler.',
+    description: 'Huzursuzluğu günlük ve haftalık güncellemede azaltır; nüfusun günlük büyümesine kademeli katkı sağlar.',
     baseCost: 350,
     maxLevel: 5,
-    effectSummary: '-6 İsyan Riski & +%15 Nüfus Büyümesi',
+    effectSummary: '−0,12 Huzursuzluk Puanı/Gün · −1,2 Puan/Haftalık Güncelleme · +%0,008 Nüfus/Gün/Seviye',
   },
 ];
 
@@ -328,6 +328,3 @@ export const FORMABLE_EMPIRES: FormableEmpireDefinition[] = [
     stabilityReward: 25,
   },
 ];
-
-
-

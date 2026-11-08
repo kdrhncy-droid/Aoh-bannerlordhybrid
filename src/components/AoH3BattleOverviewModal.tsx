@@ -14,6 +14,7 @@ import { ActiveBattle, ActiveSiege, Nation, Territory } from '../types/game';
 import { NationFlagCanvasBadge } from '../map/nationFlagRenderer';
 import { TERRAIN_INFO } from '../engine/pashaAndFiefEngine';
 import { sound } from '../utils/soundEngine';
+import { useAccessibleDialog } from '../hooks/useAccessibleDialog';
 
 interface AoH3BattleOverviewModalProps {
   battle?: ActiveBattle | null;
@@ -34,6 +35,7 @@ export const AoH3BattleOverviewModal: React.FC<AoH3BattleOverviewModalProps> = (
   onClose,
   onApplyTacticalOrder,
 }) => {
+  const dialogRef = useAccessibleDialog(Boolean(battle || siege), onClose);
   if (!battle && !siege) return null;
 
   const attackerId = battle ? battle.attackerId : siege!.attackerId;
@@ -45,6 +47,20 @@ export const AoH3BattleOverviewModal: React.FC<AoH3BattleOverviewModalProps> = (
   const isPlayerAttacker = attackerId === playerNationId;
   const isPlayerDefender = defenderId === playerNationId;
   const isPlayerInvolved = isPlayerAttacker || isPlayerDefender;
+  const canBombardSiegeWalls =
+    !battle && Boolean(siege && siege.attackerId === playerNationId);
+  const hasTacticalOrders = Boolean(
+    (battle && isPlayerInvolved) || canBombardSiegeWalls
+  );
+  const turanAlreadyUsed = Boolean(
+    battle && (isPlayerAttacker ? battle.attackerTuranUsed : battle.defenderTuranUsed)
+  );
+  const enemyTroopsForPlayer = battle
+    ? isPlayerAttacker
+      ? battle.defenderTroops
+      : battle.attackerTroops
+    : 0;
+  const bombardmentBelowFloor = Boolean(battle && enemyTroopsForPlayer <= 200);
 
   const terrainMeta = TERRAIN_INFO[territory.terrain || 'OVA'] || TERRAIN_INFO.OVA;
   const combatWidth = battle?.combatWidth || 25000;
@@ -77,6 +93,11 @@ export const AoH3BattleOverviewModal: React.FC<AoH3BattleOverviewModalProps> = (
       onClick={onClose}
     >
       <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="battle-overview-title"
+        tabIndex={-1}
         className="relative w-full max-w-3xl bg-slate-950/95 border border-amber-500/40 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[92vh]"
         onClick={(e) => e.stopPropagation()}
       >
@@ -88,7 +109,7 @@ export const AoH3BattleOverviewModal: React.FC<AoH3BattleOverviewModalProps> = (
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold font-serif text-amber-200 uppercase tracking-wide">
+                <h2 id="battle-overview-title" className="text-base sm:text-lg font-bold font-serif text-amber-200 uppercase tracking-wide">
                   {battle
                     ? `${territory.name} Muharebesi (AoH3 Canlı Meydan)`
                     : `${territory.name} Kuşatması & Sur Direnişi`}
@@ -108,6 +129,7 @@ export const AoH3BattleOverviewModal: React.FC<AoH3BattleOverviewModalProps> = (
           </div>
           <button
             onClick={onClose}
+            aria-label="Muharebe veya kuşatma özetini kapat"
             className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/80 transition-colors"
           >
             <X className="w-5 h-5" />
@@ -313,42 +335,69 @@ export const AoH3BattleOverviewModal: React.FC<AoH3BattleOverviewModalProps> = (
           )}
 
           {/* Tactical Command Action Buttons (Available for Player) */}
-          {isPlayerInvolved && onApplyTacticalOrder && (
+          {hasTacticalOrders && onApplyTacticalOrder && (
             <div className="p-4 rounded-xl bg-slate-900/80 border border-slate-800 flex flex-wrap items-center justify-between gap-3">
               <div className="text-xs text-slate-300 font-medium">
                 Komutan Müdahalesi:
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <button
-                  onClick={() => {
-                    sound.playWarHorn();
-                    onApplyTacticalOrder('TURAN');
-                  }}
-                  className="px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5"
-                >
-                  <Zap className="w-3.5 h-3.5" />
-                  Hilal & Turan Taktiği (+%18 Saldırı)
-                </button>
-                <button
-                  onClick={() => {
-                    sound.playWarHorn();
-                    onApplyTacticalOrder('BOMBARD');
-                  }}
-                  className="px-3.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 border border-sky-500/40 text-sky-300 text-xs font-bold transition-all flex items-center gap-1.5"
-                >
-                  <Target className="w-3.5 h-3.5" />
-                  Şahi Topçu Ateşi (Surları Döv)
-                </button>
-                <button
-                  onClick={() => {
-                    sound.playMarch();
-                    onApplyTacticalOrder('RETREAT');
-                  }}
-                  className="px-3.5 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-bold transition-all flex items-center gap-1.5"
-                >
-                  <ArrowRight className="w-3.5 h-3.5" />
-                  Düzenli Geri Çekil (Retreat)
-                </button>
+                {battle && (
+                  <>
+                    <button
+                      disabled={turanAlreadyUsed}
+                      onClick={() => {
+                        sound.playWarHorn();
+                        onApplyTacticalOrder('TURAN');
+                      }}
+                      className="min-h-[40px] px-3.5 py-1.5 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 disabled:opacity-50 disabled:cursor-not-allowed border border-amber-500/40 text-amber-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                    >
+                      <Zap className="w-3.5 h-3.5" />
+                      {turanAlreadyUsed
+                        ? 'Hilal & Turan (Kullanıldı)'
+                        : 'Hilal & Turan Taktiği (+%18 güç)'}
+                    </button>
+                  </>
+                )}
+                {(battle || canBombardSiegeWalls) && (
+                  <button
+                    onClick={() => {
+                      sound.playWarHorn();
+                      onApplyTacticalOrder('BOMBARD');
+                    }}
+                    disabled={
+                      bombardmentBelowFloor ||
+                      (!battle &&
+                        (territory.castleWallHp ?? siege?.wallIntegrity ?? 100) <= 0)
+                    }
+                    title={
+                      bombardmentBelowFloor
+                        ? 'Hedef kuvvet 200 askerin altında; ilave kayıp oluşturulamaz.'
+                        : battle
+                        ? 'Düşman askerlerine topçu ateşi uygular; surlara hasar vermez.'
+                        : 'Kuşatma surlarının dayanıklılığını azaltır.'
+                    }
+                    className="min-h-[40px] px-3.5 py-1.5 rounded-lg bg-sky-500/20 hover:bg-sky-500/30 disabled:opacity-50 disabled:cursor-not-allowed border border-sky-500/40 text-sky-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                  >
+                    <Target className="w-3.5 h-3.5" />
+                    {battle
+                      ? bombardmentBelowFloor
+                        ? 'Bombardıman eşiği (200)'
+                        : 'Düşman Kuvvetlerini Bombala'
+                      : 'Surları Bombala (−20)'}
+                  </button>
+                )}
+                {battle && (
+                  <button
+                    onClick={() => {
+                      sound.playMarch();
+                      onApplyTacticalOrder('RETREAT');
+                    }}
+                    className="min-h-[40px] px-3.5 py-1.5 rounded-lg bg-red-500/20 hover:bg-red-500/30 border border-red-500/40 text-red-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                  >
+                    <ArrowRight className="w-3.5 h-3.5" />
+                    Düzenli Geri Çekil
+                  </button>
+                )}
               </div>
             </div>
           )}

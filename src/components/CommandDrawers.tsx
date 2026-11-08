@@ -42,8 +42,8 @@ export const CommandDrawers: React.FC<CommandDrawersProps> = (props) => {
         } flex flex-col overflow-hidden transition-all`}
       >
         {/* Top Grab Handle & Header (Responsive across Portrait & Landscape) */}
-        <div className="flex items-center justify-between px-3.5 sm:px-5 py-2 sm:py-2.5 border-b border-slate-800 shrink-0 gap-2">
-          <div className="flex items-center gap-2 min-w-0">
+        <div className="hud-drawer-header flex items-center justify-between px-3.5 sm:px-5 py-2 sm:py-2.5 border-b border-slate-800 shrink-0 gap-2">
+          <div className="hud-drawer-header-title flex items-center gap-2 min-w-0">
             {activeTab === 'TERRITORY' && (
               <>
                 <Shield className="w-4 h-4 sm:w-5 sm:h-5 text-amber-400 shrink-0" />
@@ -88,7 +88,7 @@ export const CommandDrawers: React.FC<CommandDrawersProps> = (props) => {
             )}
           </div>
 
-          <div className="flex items-center gap-1.5 shrink-0">
+          <div className="hud-drawer-header-controls flex items-center gap-1.5 shrink-0">
             <button
               onClick={cycleSizeMode}
               className="px-2.5 min-h-[34px] sm:min-h-[36px] rounded-xl text-[11px] font-semibold bg-slate-800/90 hover:bg-slate-700 text-amber-300 border border-slate-700 transition-colors"

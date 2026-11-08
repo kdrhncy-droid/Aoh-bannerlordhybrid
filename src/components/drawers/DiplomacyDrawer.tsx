@@ -2,7 +2,11 @@ import React, { useState } from "react";
 import { Crown, Handshake, Swords, Shield, AlertTriangle } from "lucide-react";
 import { CommandDrawersProps } from "./drawerTypes";
 import { IDEOLOGIES } from "../../data/world2026Data";
-import { getOrCreateRelation, isAtWar } from "../../engine/simulationEngine";
+import {
+  getOrCreateRelation,
+  getWarScoreForNation,
+  isAtWar,
+} from "../../engine/simulationEngine";
 import {
   getNationNotableLords,
   getNationRulerName,
@@ -85,6 +89,9 @@ export const DiplomacyDrawer: React.FC<CommandDrawersProps> = ({
 
                       const rel = isPlayer ? null : getOrCreateRelation(relations, playerNation.id, realm.id);
                       const war = isPlayer ? null : isAtWar(wars, playerNation.id, realm.id);
+                      const playerWarScore = war
+                        ? getWarScoreForNation(war, playerNation.id)
+                        : null;
 
                       return (
                         <div
@@ -145,7 +152,7 @@ export const DiplomacyDrawer: React.FC<CommandDrawersProps> = ({
                                 </span>
                               ) : war ? (
                                 <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-rose-500/20 border border-rose-500/50 text-rose-300 animate-pulse">
-                                  ⚔️ Savaşta (%{war.attackerWarScore})
+                                  ⚔️ Savaşta · Senin tarafın: {playerWarScore !== null && playerWarScore > 0 ? '+' : ''}{playerWarScore ?? war.attackerWarScore}%
                                 </span>
                               ) : rel?.allianceType === 'OFFENSIVE' ? (
                                 <span className="px-2.5 py-1 rounded-lg text-[11px] font-bold bg-emerald-500/20 border border-emerald-500/50 text-emerald-300">
@@ -245,7 +252,7 @@ export const DiplomacyDrawer: React.FC<CommandDrawersProps> = ({
                                   }
                                   className="flex-1 min-h-[44px] py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 text-xs font-semibold transition-transform active:scale-95 flex items-center justify-center gap-1"
                                 >
-                                  <span>{rel?.allianceType ? '🤝 Paktı Gör' : '🛡️ Pakt Öner'}</span>
+                                  <span>{rel?.allianceType ? '🤝 Paktı Feshet' : '🛡️ Savunma Paktı Kur'}</span>
                                 </button>
                               </>
                             )}

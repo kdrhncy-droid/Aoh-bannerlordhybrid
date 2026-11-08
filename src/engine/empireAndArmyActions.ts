@@ -16,6 +16,7 @@ import {
   WorldNewsEvent,
 } from '../types/game';
 import { RELIGIONS, resolveTerritoryReligion } from '../data/religionAndCultureData';
+import { adjustAggressiveExpansionGain } from './technologyEffects';
 import {
   BUILDINGS,
   COMMANDERS,
@@ -35,6 +36,7 @@ import {
   isAtWar,
   resolveWarParticipants,
 } from './simulationEngine';
+import { relationKey } from './worldBuilder';
 import {
   DEFAULT_LORD_LOYALTY,
   getLordRetinueTroops,
@@ -46,6 +48,7 @@ import { sound } from '../utils/soundEngine';
 
 export interface EmpireActionPatch {
   nations?: Record<string, Nation>;
+  relations?: Record<string, DiplomaticRelation>;
   territories?: Record<string, Territory>;
   wars?: ActiveWar[];
   movements?: ArmyMovement[];
@@ -104,7 +107,10 @@ export function resolveCrisisDomain(params: {
       ),
       aggressiveExpansion: Math.max(
         0,
-        Math.min(100, p.aggressiveExpansion + (eff.aeDelta || 0))
+        Math.min(
+          100,
+          p.aggressiveExpansion + adjustAggressiveExpansionGain(p, eff.aeDelta || 0)
+        )
       ),
     },
   };
@@ -628,10 +634,18 @@ export function executeArmyMoveDomain(params: {
   const [firstHopId, ...remainingHops] = route.hops;
   const firstHopTerr = territories[firstHopId];
 
-  const sendTroops = Math.round(fromT.garrison * moveRatio);
+  const sendableTroops = Math.max(0, Math.floor(fromT.garrison - 500));
+  const normalizedMoveRatio = Number.isFinite(moveRatio)
+    ? Math.max(0, Math.min(1, moveRatio))
+    : 0;
+  const sendTroops = Math.min(
+    sendableTroops,
+    Math.round(sendableTroops * normalizedMoveRatio)
+  );
   if (sendTroops < 1000) {
     return {
-      toastMessage: 'Sefer için bölgede en az 1.000 asker bulunmalıdır.',
+      toastMessage:
+        'Sefer için en az 1.000 asker sevk edilmeli; kaynak eyalette 500 savunma askeri kalır.',
     };
   }
 
@@ -711,17 +725,23 @@ export function executeArmyMoveDomain(params: {
     0
   );
 
+  const sourceUnits =
+    fromT.units || { infantry: fromT.garrison, armor: 0, airDrone: 0 };
   const sentUnits = scaleUnits(
-    fromT.units || { infantry: fromT.garrison, armor: 0, airDrone: 0 },
-    moveRatio
+    sourceUnits,
+    sendTroops / Math.max(1, fromT.garrison)
   );
+  const remainingUnits = {
+    infantry: Math.max(0, sourceUnits.infantry - sentUnits.infantry),
+    armor: Math.max(0, sourceUnits.armor - sentUnits.armor),
+    airDrone: Math.max(0, sourceUnits.airDrone - sentUnits.airDrone),
+  };
   if (lordRetinueBonus > 0) {
     sentUnits.infantry += Math.round(lordRetinueBonus * 0.75);
     sentUnits.armor += Math.round(lordRetinueBonus * 0.25);
     toast = `Sancak Lordları sefere katıldı! (+${lordRetinueBonus.toLocaleString('tr-TR')} Lord Muhafızı orduya eklendi)`;
   }
 
-  const remainRatio = Math.max(0.05, 1 - moveRatio);
   let workingNations: Record<string, Nation> =
     lordRetinueBonus > 0
       ? {
@@ -737,15 +757,8 @@ export function executeArmyMoveDomain(params: {
     ...territories,
     [fromId]: {
       ...fromT,
-      garrison: Math.max(500, fromT.garrison - sendTroops),
-      units: scaleUnits(
-        fromT.units || {
-          infantry: fromT.garrison,
-          armor: 0,
-          airDrone: 0,
-        },
-        remainRatio
-      ),
+      garrison: Math.max(0, fromT.garrison - sendTroops),
+      units: remainingUnits,
     },
   };
 
@@ -942,7 +955,10 @@ export function siegeBombardmentDomain(params: {
       };
     }
     sound.playWarHorn();
-    const newGarrison = Math.max(500, Math.round(t.garrison * 0.9));
+    const wallBefore = Math.max(0, Math.min(100, t.castleWallHp ?? 100));
+    const wallAfter = Math.max(0, wallBefore - 35);
+    const newGarrison = Math.max(0, Math.round(t.garrison * 0.9));
+    const garrisonLoss = Math.max(0, t.garrison - newGarrison);
     return {
       nations: {
         ...nations,
@@ -952,12 +968,13 @@ export function siegeBombardmentDomain(params: {
         ...territories,
         [territoryId]: {
           ...t,
-          castleWallHp: Math.max(0, (t.castleWallHp ?? 100) - 35),
+          castleWallHp: wallAfter,
           garrison: newGarrison,
-          units: scaleUnits(t.units, 0.9),
+          units: scaleUnits(t.units, newGarrison / Math.max(1, t.garrison)),
+          ...(t.siege ? { siege: { ...t.siege, wallIntegrity: wallAfter } } : {}),
         },
       },
-      toastMessage: `${t.name} Kalesi topçu ateşine tutuldu: Surlar -%35 yıkıldı, düşman garnizonu -%10 kayıp verdi!`,
+      toastMessage: `${t.name} Kalesi topçu ateşine tutuldu: surlar %${wallBefore} → %${wallAfter}; garnizon ${t.garrison.toLocaleString('tr-TR')} → ${newGarrison.toLocaleString('tr-TR')} asker (${garrisonLoss.toLocaleString('tr-TR')} kayıp).`,
     };
   }
 
@@ -971,7 +988,10 @@ export function siegeBombardmentDomain(params: {
   }
 
   sound.playWarHorn();
-  const newGarrison = Math.max(500, Math.round(t.garrison * 0.82));
+  const wallBefore = Math.max(0, Math.min(100, t.castleWallHp ?? 100));
+  const wallAfter = Math.max(0, wallBefore - 45);
+  const newGarrison = Math.max(0, Math.round(t.garrison * 0.82));
+  const garrisonLoss = Math.max(0, t.garrison - newGarrison);
   return {
     nations: {
       ...nations,
@@ -983,17 +1003,18 @@ export function siegeBombardmentDomain(params: {
     },
     territories: {
       ...territories,
-      [territoryId]: {
-        ...t,
-        castleWallHp: Math.max(0, (t.castleWallHp ?? 100) - 45),
-        garrison: newGarrison,
-        units: scaleUnits(t.units, 0.82),
+        [territoryId]: {
+          ...t,
+          castleWallHp: wallAfter,
+          garrison: newGarrison,
+          units: scaleUnits(t.units, newGarrison / Math.max(1, t.garrison)),
+          ...(t.siege ? { siege: { ...t.siege, wallIntegrity: wallAfter } } : {}),
       },
     },
     toastMessage:
       gameMode === 'EMPIRES_1440'
-        ? `${t.name} Kalesine Şahi & Lağımcı hücumu yapıldı: Surlar -%45 çöktü, garnizon -%18 kırıldı!`
-        : `${t.name} Kalesine kuşatma baskını düzenlendi: Surlar -%45 çöktü, düşman garnizonu -%18 imha edildi!`,
+        ? `${t.name} Kalesine Şahi & Lağımcı hücumu yapıldı: surlar %${wallBefore} → %${wallAfter}; garnizon ${t.garrison.toLocaleString('tr-TR')} → ${newGarrison.toLocaleString('tr-TR')} asker (${garrisonLoss.toLocaleString('tr-TR')} kayıp).`
+        : `${t.name} Kalesine kuşatma baskını düzenlendi: surlar %${wallBefore} → %${wallAfter}; garnizon ${t.garrison.toLocaleString('tr-TR')} → ${newGarrison.toLocaleString('tr-TR')} asker (${garrisonLoss.toLocaleString('tr-TR')} kayıp).`,
   };
 }
 
@@ -1019,21 +1040,38 @@ export function startResearchDomain(params: {
     return { toastMessage: `${tech.name} zaten aktif olarak araştırılıyor!` };
   }
 
+  const researchProgressByTech = { ...(p.researchProgressByTech ?? {}) };
+  if (p.activeResearch) {
+    researchProgressByTech[p.activeResearch.techId] = Math.max(
+      0,
+      p.activeResearch.progress
+    );
+  }
+  const savedProgress = researchProgressByTech[techId];
+  const resumedProgress = Number.isFinite(savedProgress)
+    ? Math.min(tech.cost, Math.max(0, savedProgress))
+    : 0;
+  researchProgressByTech[techId] = resumedProgress;
+
   sound.playClick();
   return {
     nations: {
       ...nations,
       [playerNationId]: {
         ...p,
+        researchProgressByTech,
         activeResearch: {
           techId,
-          progress: 0,
+          progress: resumedProgress,
           totalCost: tech.cost,
           startedTick: tick,
         },
       },
     },
-    toastMessage: `🔬 ${tech.name} araştırması başladı! Bilim üretimine göre gün gün ilerleyecek.`,
+    toastMessage:
+      resumedProgress > 0
+        ? `🔬 ${tech.name} araştırması kaldığı yerden devam ediyor.`
+        : `🔬 ${tech.name} araştırması başladı! Bilim üretimine göre gün gün ilerleyecek.`,
   };
 }
 
@@ -1044,15 +1082,20 @@ export function cancelResearchDomain(params: {
   const { nations, playerNationId } = params;
   const p = nations[playerNationId];
   if (!p || !p.activeResearch) return {};
+  const researchProgressByTech = {
+    ...(p.researchProgressByTech ?? {}),
+    [p.activeResearch.techId]: Math.max(0, p.activeResearch.progress),
+  };
   return {
     nations: {
       ...nations,
       [playerNationId]: {
         ...p,
+        researchProgressByTech,
         activeResearch: null,
       },
     },
-    toastMessage: 'Araştırma projesi duraklatıldı.',
+    toastMessage: 'Araştırma duraklatıldı; ilerlemesi kaydedildi.',
   };
 }
 
@@ -1068,12 +1111,17 @@ export function boostResearchDomain(params: {
   const needed = p.activeResearch.totalCost - p.activeResearch.progress;
   const spend = Math.min(p.researchPoints, Math.max(5, Math.ceil(needed * 0.4)));
   const nextProgress = Number((p.activeResearch.progress + spend).toFixed(2));
+  const researchProgressByTech = {
+    ...(p.researchProgressByTech ?? {}),
+    [p.activeResearch.techId]: nextProgress,
+  };
   sound.playBuild();
   return {
     nations: {
       ...nations,
       [playerNationId]: {
         ...p,
+        researchProgressByTech,
         researchPoints: Number((p.researchPoints - spend).toFixed(1)),
         activeResearch: {
           ...p.activeResearch,
@@ -1099,10 +1147,11 @@ export function unlockTechDomain(params: {
 export function enactReformDomain(params: {
   reformId: string;
   nations: Record<string, Nation>;
+  relations: Record<string, DiplomaticRelation>;
   playerNationId: string;
   gameMode: GameModeId;
 }): EmpireActionPatch {
-  const { reformId, nations, playerNationId, gameMode } = params;
+  const { reformId, nations, relations, playerNationId, gameMode } = params;
   const p = nations[playerNationId];
   const ref = getReformsForMode(gameMode).find((r) => r.id === reformId);
   if (!p || !ref || p.enactedReforms.includes(reformId)) return {};
@@ -1113,6 +1162,24 @@ export function enactReformDomain(params: {
   }
 
   sound.playTreaty();
+  let nextRelations: Record<string, DiplomaticRelation> | undefined;
+  if (reformId === 'ref_imperial_diplomacy') {
+    nextRelations = { ...relations };
+    for (const other of Object.values(nations)) {
+      if (!other || other.id === playerNationId || other.isEliminated) continue;
+      const key = relationKey(playerNationId, other.id);
+      const currentRelation = getOrCreateRelation(
+        nextRelations,
+        playerNationId,
+        other.id
+      );
+      nextRelations[key] = {
+        ...currentRelation,
+        score: Math.min(100, currentRelation.score + 15),
+      };
+    }
+  }
+
   return {
     nations: {
       ...nations,
@@ -1125,8 +1192,13 @@ export function enactReformDomain(params: {
           reformId === 'ref_welfare_state'
             ? Math.min(100, p.stability + 12)
             : p.stability,
+        aggressiveExpansion:
+          reformId === 'ref_imperial_diplomacy'
+            ? Math.max(0, (p.aggressiveExpansion || 0) - 15)
+            : p.aggressiveExpansion,
       },
     },
+    ...(nextRelations ? { relations: nextRelations } : {}),
     toastMessage: `Ulusal Reform Yürürlüğe Girdi: ${ref.name}`,
   };
 }

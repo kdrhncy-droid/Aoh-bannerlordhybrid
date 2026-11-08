@@ -24,6 +24,7 @@ import {
   resolveWarParticipants,
 } from './simulationEngine';
 import { relationKey } from './worldBuilder';
+import { adjustOccupiedUnrestDrift } from './technologyEffects';
 
 function scaleUnitComp(units: UnitComposition, ratio: number): UnitComposition {
   return {
@@ -1029,7 +1030,8 @@ export function evaluateWeeklyUnrestAndRebellions(
     let nextUnrest = t.unrest;
     if (!isCore) {
       const nonCoreDrift = 4.2 + taxPressure - depotRelief - welfareRelief;
-      nextUnrest = Math.max(5, Math.min(100, Math.round(t.unrest + nonCoreDrift)));
+      const adjustedDrift = adjustOccupiedUnrestDrift(owner, nonCoreDrift);
+      nextUnrest = Math.max(5, Math.min(100, Math.round(t.unrest + adjustedDrift)));
     } else {
       const coreDrift = taxPressure - depotRelief - welfareRelief - 2.0;
       nextUnrest = Math.max(0, Math.min(100, Math.round(t.unrest + coreDrift)));

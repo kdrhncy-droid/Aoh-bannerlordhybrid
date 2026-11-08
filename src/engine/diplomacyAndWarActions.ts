@@ -13,6 +13,7 @@ import {
   PeaceDealType,
 } from '../components/drawers/drawerTypes';
 import { relationKey } from './worldBuilder';
+import { getEmbargoingNationIds } from './embargoUtils';
 import {
   formatGameDate,
   getOrCreateRelation,
@@ -22,6 +23,7 @@ import {
 import { evaluateWartimeAiOperations } from './aiAndRebellionEngine';
 import { autoResolveTacticalBattle } from './tacticalBattleEngine';
 import { withUpdatedLordLoyalty } from './pashaAndFiefEngine';
+import { adjustAggressiveExpansionGain } from './technologyEffects';
 import { sound } from '../utils/soundEngine';
 
 export interface DomainActionPatch {
@@ -214,7 +216,9 @@ export function executeDiplomaticActionDomain(params: {
         [key]: {
           ...currentRel,
           hasMilitaryAccess: !currentRel.hasMilitaryAccess,
-          score: Math.min(100, currentRel.score + 8),
+          score: currentRel.hasMilitaryAccess
+            ? currentRel.score
+            : Math.min(100, currentRel.score + 8),
         },
       },
       toast: currentRel.hasMilitaryAccess
@@ -245,6 +249,7 @@ export function executeDiplomaticActionDomain(params: {
           ...currentRel,
           hasTradeAgreement: !currentRel.hasTradeAgreement,
           hasEmbargo: false,
+          embargoingNationIds: [],
           score: Math.min(100, currentRel.score + 10),
         },
       },
@@ -385,7 +390,12 @@ export function executeDiplomaticActionDomain(params: {
   }
 
   if (action === 'EMBARGO') {
-    const spent = currentRel.hasEmbargo
+    const embargoingNationIds = getEmbargoingNationIds(currentRel);
+    const alreadyEmbargoing = embargoingNationIds.includes(playerNationId);
+    const nextEmbargoingNationIds = alreadyEmbargoing
+      ? embargoingNationIds.filter((nationId) => nationId !== playerNationId)
+      : [...embargoingNationIds, playerNationId];
+    const spent = alreadyEmbargoing
       ? { nation: playerNation }
       : spendDiplomacyPoints(playerNation, DIPLOMACY_POINT_COSTS.EMBARGO || 0);
     if ('error' in spent) return { toast: spent.error };
@@ -396,12 +406,13 @@ export function executeDiplomaticActionDomain(params: {
         ...relations,
         [key]: {
           ...currentRel,
-          hasEmbargo: !currentRel.hasEmbargo,
+          hasEmbargo: nextEmbargoingNationIds.length > 0,
+          embargoingNationIds: nextEmbargoingNationIds,
           hasTradeAgreement: false,
           score: Math.max(-100, currentRel.score - 20),
         },
       },
-      toast: currentRel.hasEmbargo
+      toast: alreadyEmbargoing
         ? `${target.name} üzerindeki ticaret ambargosu kaldırıldı.`
         : `${target.name} ekonomisine Ticaret Ambargosu uygulandı!`,
     };
@@ -775,7 +786,11 @@ export function resolveTacticalBattleOutcomeDomain(params: {
         (nextNations[winnerId].clanInfluence ?? 120) + outcome.earnedInfluence
       ),
       aggressiveExpansion: isAttackerWinner
-        ? Math.min(100, nextNations[winnerId].aggressiveExpansion + 6)
+        ? Math.min(
+            100,
+            nextNations[winnerId].aggressiveExpansion +
+              adjustAggressiveExpansionGain(nextNations[winnerId], 6)
+          )
         : nextNations[winnerId].aggressiveExpansion,
     };
     if (wNat.activeGeneralId) {

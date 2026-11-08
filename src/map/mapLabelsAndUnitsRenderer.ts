@@ -8,6 +8,7 @@ import {
   Territory,
 } from '../types/game';
 import { getOrCreateRelation, isAtWar } from '../engine/simulationEngine';
+import type { MapLabelDensityOption } from '../engine/gameSettings';
 import { TERRAIN_INFO } from '../engine/pashaAndFiefEngine';
 import { GeoCountryFeature } from '../engine/worldBuilder';
 import {
@@ -35,6 +36,7 @@ export interface RenderLabelsParams {
   battles: ActiveBattle[];
   projection: GeoProjection;
   mapMode: MapMode;
+  mapLabelDensity?: MapLabelDensityOption;
   playerNationId: string;
   selectedTerritoryId: string | null;
   armyOrderSourceId?: string | null;
@@ -51,6 +53,25 @@ function formatTroopBadgeNumber(garrison: number, zoomK: number): string {
     return `${Math.round(inThousands)}B`;
   }
   return `${Math.max(0, Math.round(garrison))}`;
+}
+
+export function getMapLabelThresholds(
+  density: MapLabelDensityOption,
+  isMobileViewport: boolean
+): { capitalNameMinZoom: number; provinceNameMinZoom: number } {
+  if (density === 'COMPACT') {
+    return isMobileViewport
+      ? { capitalNameMinZoom: 2.0, provinceNameMinZoom: 2.65 }
+      : { capitalNameMinZoom: 1.8, provinceNameMinZoom: 2.45 };
+  }
+  if (density === 'DETAILED') {
+    return isMobileViewport
+      ? { capitalNameMinZoom: 1.45, provinceNameMinZoom: 1.9 }
+      : { capitalNameMinZoom: 1.3, provinceNameMinZoom: 1.7 };
+  }
+  return isMobileViewport
+    ? { capitalNameMinZoom: 1.75, provinceNameMinZoom: 2.25 }
+    : { capitalNameMinZoom: 1.55, provinceNameMinZoom: 2.05 };
 }
 
 export function renderMapLabelsAndBattles(params: RenderLabelsParams): void {
@@ -71,9 +92,14 @@ export function renderMapLabelsAndBattles(params: RenderLabelsParams): void {
     selectedTerritoryId,
     fogOfWarEnabled,
     visibleTerritoryIds,
+    mapLabelDensity = 'BALANCED',
   } = params;
 
   const isMobileViewport = width < 768 || height < 540;
+  const labelThresholds = getMapLabelThresholds(
+    mapLabelDensity,
+    isMobileViewport
+  );
   const placedBoxes: PlacedBox[] = [];
   const collides = (box: PlacedBox) =>
     placedBoxes.some(
@@ -215,8 +241,8 @@ export function renderMapLabelsAndBattles(params: RenderLabelsParams): void {
     // 1. Province / Sancak Name Label (Only when zoomed in or when explicitly selected, avoiding map clutter)
     const wantsName =
       isSelected ||
-      (isCapital && transform.k >= (isMobileViewport ? 1.75 : 1.55)) ||
-      transform.k >= (isMobileViewport ? 2.25 : 2.05);
+      (isCapital && transform.k >= labelThresholds.capitalNameMinZoom) ||
+      transform.k >= labelThresholds.provinceNameMinZoom;
 
     let namePlaced = false;
     if (wantsName && !battleTerritorySet.has(t.id)) {

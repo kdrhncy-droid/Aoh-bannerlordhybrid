@@ -12,8 +12,8 @@ export const TECH_TREE: TechDefinition[] = [
     branch: 'MILITARY',
     tier: 1,
     cost: 120,
-    description: 'Uydu destekli komuta zinciriyle tüm birliklerin taarruz koordinasyonunu artırır ve Nesil II Ordu Modernizasyonunu açar.',
-    effectLabel: '+%12 Taarruz · Nesil II Ordu Donanımı Açılır',
+    description: 'Uydu destekli komuta zinciri muharebe gücünü artırır ve Nesil II Ordu Modernizasyonunu açar.',
+    effectLabel: '+%12 Muharebe Gücü · Nesil II Ordu Donanımı Açılır',
   },
   {
     id: 'mil_2',
@@ -22,8 +22,8 @@ export const TECH_TREE: TechDefinition[] = [
     tier: 2,
     cost: 260,
     prerequisite: 'mil_1',
-    description: 'Silahlı insansız hava araçlarıyla düşman tahkimatlarını yıpratır ve Nesil III Ordu Modernizasyonunu açar.',
-    effectLabel: '+%18 Taarruz & -%15 Kayıp · Nesil III Ordu Açılır',
+    description: 'SİHA ve otonom birlik doktrini muharebe gücünü artırır ve Nesil III Ordu Modernizasyonunu açar.',
+    effectLabel: '+%18 Muharebe Gücü · Nesil III Ordu Açılır',
   },
   {
     id: 'mil_3',
@@ -32,8 +32,8 @@ export const TECH_TREE: TechDefinition[] = [
     tier: 3,
     cost: 480,
     prerequisite: 'mil_2',
-    description: 'Stratejik hedefleri anında vurarak savaş skorunu lehinize çevirir ve Nesil IV Ordu Modernizasyonunu açar.',
-    effectLabel: '+%25 Ordu Gücü & Hızlı Kuşatma · Nesil IV Ordu Açılır',
+    description: 'Hipersonik caydırıcılık muharebe gücünü artırır ve Nesil IV Ordu Modernizasyonunu açar.',
+    effectLabel: '+%25 Muharebe Gücü · Nesil IV Ordu Açılır',
   },
   {
     id: 'mil_4',
@@ -53,8 +53,8 @@ export const TECH_TREE: TechDefinition[] = [
     branch: 'ECONOMY',
     tier: 1,
     cost: 110,
-    description: 'Kayıt dışı ekonomiyi azaltarak vergi verimliliğini artırır ve enflasyonu dizginler.',
-    effectLabel: '+%15 Vergi Geliri & Enflasyon Kontrolü',
+    description: 'Dijital tahsilat vergi gelirini artırır; enflasyon mevcut vergi ve ekonomi kurallarıyla hesaplanır.',
+    effectLabel: '+%15 Vergi Geliri',
   },
   {
     id: 'eco_2',
@@ -64,7 +64,7 @@ export const TECH_TREE: TechDefinition[] = [
     cost: 240,
     prerequisite: 'eco_1',
     description: 'Sanayi komplekslerinin üretim kapasitesini katlar.',
-    effectLabel: '+%25 Fabrika ve Üretim Geliri',
+    effectLabel: '+%25 Üretim Geliri',
   },
   {
     id: 'eco_3',
@@ -73,18 +73,18 @@ export const TECH_TREE: TechDefinition[] = [
     tier: 3,
     cost: 440,
     prerequisite: 'eco_2',
-    description: 'Boru hatları ve ticaret koridorlarından elde edilen gümrük gelirlerini artırır.',
-    effectLabel: '+%30 Ticaret Anlaşması Geliri',
+    description: 'Ulusal iç pazar ticaret gelirini artırır.',
+    effectLabel: '+%30 İç Pazar Ticareti',
   },
   {
     id: 'eco_4',
-    name: 'Egemen Varlık Fonu',
+    name: 'Dijital Tahsilat ve Vergi Denetim Ağı',
     branch: 'ECONOMY',
     tier: 4,
     cost: 700,
     prerequisite: 'eco_3',
-    description: 'Devlet hazinesindeki nakit rezervlerinden günlük faiz ve yatırım getirisi sağlar.',
-    effectLabel: '+%20 Toplam Ulusal Gelir',
+    description: 'Merkezî tahsilat ve vergi denetimiyle vergi gelirini artırır.',
+    effectLabel: '+%20 Vergi Geliri',
   },
 
   // ADMINISTRATION
@@ -94,8 +94,8 @@ export const TECH_TREE: TechDefinition[] = [
     branch: 'ADMINISTRATION',
     tier: 1,
     cost: 100,
-    description: 'Yeni fethedilen bölgelerdeki isyan riskini azaltır ve asimilasyonu hızlandırır.',
-    effectLabel: '-%30 İşgal İsyan Riski',
+    description: 'Çekirdek dışı eyaletlerdeki pozitif haftalık huzursuzluk artışını azaltır.',
+    effectLabel: '-%30 Çekirdek Dışı Huzursuzluk Artışı',
   },
   {
     id: 'adm_2',
@@ -104,8 +104,8 @@ export const TECH_TREE: TechDefinition[] = [
     tier: 2,
     cost: 220,
     prerequisite: 'adm_1',
-    description: 'Agresif genişleme (AE) cezasını hızla düşürür ve koalisyon tehlikesini azaltır.',
-    effectLabel: '-%25 Koalisyon Tepkisi & +15 İlişki',
+    description: 'Savaş sonrası ve kabine kararlarıyla kazanılan agresif genişlemeyi azaltır.',
+    effectLabel: '-%25 Agresif Genişleme Kazanımı',
   },
   {
     id: 'adm_3',
@@ -125,7 +125,7 @@ export const TECH_TREE: TechDefinition[] = [
     cost: 680,
     prerequisite: 'adm_3',
     description: 'Çok uluslu imparatorluklarda tam istikrar ve vasal gelir artışı sağlar.',
-    effectLabel: '+15 Maksimum İstikrar & +%50 Vasal Haracı',
+    effectLabel: '+%50 Vasal Haraç Geliri',
   },
 
   // SCIENCE
@@ -145,28 +145,28 @@ export const TECH_TREE: TechDefinition[] = [
     tier: 2,
     cost: 280,
     prerequisite: 'sci_1',
-    description: 'Hem askeri hem sivil sanayide dışa bağımlılığı bitirir, ambargolara direnç sağlar.',
+    description: 'Üretim gelirini artırır ve yabancı ticaret ambargolarının ekonomi üzerindeki etkisini azaltır.',
     effectLabel: 'Ambargo Etkisi -%50 & +%15 Üretim',
   },
   {
     id: 'sci_3',
-    name: 'Kuantum Şifreleme & İstihbarat',
+    name: 'Kuantum Şifreleme & Harita İstihbaratı',
     branch: 'SCIENCE',
     tier: 3,
     cost: 500,
     prerequisite: 'sci_2',
-    description: 'Düşman ordularının hareketlerini önceden tespit eder ve diplomatik koz sağlar.',
-    effectLabel: '+%25 Araştırma & +%15 Savaş Skoru Kazanımı',
+    description: 'Araştırma hızını artırır ve haritadaki tüm bölgeleri görünür kılar.',
+    effectLabel: '+%25 Araştırma · Tüm Harita Görünür',
   },
   {
     id: 'sci_4',
-    name: 'Ticari Füzyon Enerjisi Devrimi',
+    name: 'Üretim Mühendisliği ve Otomasyon',
     branch: 'SCIENCE',
     tier: 4,
     cost: 820,
     prerequisite: 'sci_3',
-    description: 'Sınırsız temiz enerjiyle enflasyonu sıfıra yaklaştırır ve üretimi zirveye taşır.',
-    effectLabel: '+%35 Ekonomik Çıktı & Sıfır Enerji Maliyeti',
+    description: 'Mühendislik ve otomasyon yatırımları ulusal üretim gelirini artırır.',
+    effectLabel: '+%35 Üretim Geliri',
   },
 ];
 
@@ -179,8 +179,8 @@ export const TECH_TREE_1440: TechDefinition[] = [
     tier: 1,
     cost: 160,
     description:
-      'Merkezi hazineden maaşlı daimi piyade ocakları ve eyalet sipahi alayları kurar; Nesil II Ordu Güncellemesini açar.',
-    effectLabel: '+%12 Taarruz · Nesil II (Yeniçeri & Sipahi) Açılır',
+      'Merkezi hazineden maaşlı daimi piyade ocakları ve eyalet sipahi alayları kurar; muharebe gücünü artırır ve Nesil II modernizasyonunu açar.',
+    effectLabel: '+%12 Muharebe Gücü · Nesil II (Yeniçeri & Sipahi) Açılır',
   },
   {
     id: 'mil_2',
@@ -190,8 +190,8 @@ export const TECH_TREE_1440: TechDefinition[] = [
     cost: 320,
     prerequisite: 'mil_1',
     description:
-      'Fitilli tüfekli saflar ve zincirli araba tahkimatıyla meydan muharebelerinde ateş üstünlüğü kurar; Nesil III Orduyu açar.',
-    effectLabel: '+%18 Taarruz & -%15 Kayıp · Nesil III (Tüfekli Ocak) Açılır',
+      'Fitilli tüfekli saflar ve tabur düzeni muharebe gücünü artırır; Nesil III Orduyu açar.',
+    effectLabel: '+%18 Muharebe Gücü · Nesil III (Tüfekli Ocak) Açılır',
   },
   {
     id: 'mil_3',
@@ -201,8 +201,8 @@ export const TECH_TREE_1440: TechDefinition[] = [
     cost: 540,
     prerequisite: 'mil_2',
     description:
-      'Tunç döküm dev kuşatma topları ve lağımcı ocaklarıyla en kalın kale surlarını yıkar; Nesil IV Orduyu açar.',
-    effectLabel: '+%25 Ordu Gücü & Kuşatma · Nesil IV (Şahi Topçusu) Açılır',
+      'Şahi topçusu ve kuşatma doktrini muharebe gücünü artırır; Nesil IV Orduyu açar.',
+    effectLabel: '+%25 Muharebe Gücü · Nesil IV (Şahi Topçusu) Açılır',
   },
   {
     id: 'mil_4',
@@ -225,7 +225,7 @@ export const TECH_TREE_1440: TechDefinition[] = [
     cost: 140,
     description:
       'Tüm sancakların arazi ve vergi gelirlerini kayıt altına alarak vergi kaçağını ve sikke tağşişini önler.',
-    effectLabel: '+%15 Vergi Geliri & Enflasyon Kontrolü',
+    effectLabel: '+%15 Vergi Geliri',
   },
   {
     id: 'eco_2',
@@ -236,7 +236,7 @@ export const TECH_TREE_1440: TechDefinition[] = [
     prerequisite: 'eco_1',
     description:
       'Şehirlerdeki Ahi loncalarını, ipek ve demir işliklerini büyüterek zanaat üretimini katlar.',
-    effectLabel: '+%25 İmalathane ve Üretim Geliri',
+    effectLabel: '+%25 Üretim Geliri',
   },
   {
     id: 'eco_3',
@@ -246,8 +246,8 @@ export const TECH_TREE_1440: TechDefinition[] = [
     cost: 500,
     prerequisite: 'eco_2',
     description:
-      'Kervansaray hatları ve liman gümrüklerinden geçen uluslararası kervanlardan yüksek gelir sağlar.',
-    effectLabel: '+%30 Ticaret Anlaşması Geliri',
+      'Ulusal iç pazar ticaret gelirini artırır.',
+    effectLabel: '+%30 İç Pazar Ticareti',
   },
   {
     id: 'eco_4',
@@ -257,8 +257,8 @@ export const TECH_TREE_1440: TechDefinition[] = [
     cost: 780,
     prerequisite: 'eco_3',
     description:
-      'İmparatorluk vakıfları ve merkez hazine ihtiyat fonuyla kesintisiz mali refah üretir.',
-    effectLabel: '+%20 Toplam İmparatorluk Geliri',
+      'Merkezî hazine tahsilat ve vergi denetimiyle vergi gelirini artırır.',
+    effectLabel: '+%20 Vergi Geliri',
   },
 
   // ADMINISTRATION (1440 Historical Era)
@@ -269,8 +269,8 @@ export const TECH_TREE_1440: TechDefinition[] = [
     tier: 1,
     cost: 145,
     description:
-      'Yeni fethedilen sancaklarda adaletli vergi ve iskân politikasıyla halkın bağlılığını kazanır.',
-    effectLabel: '-%30 İşgal İsyan Riski',
+      'Çekirdek dışı sancaklardaki pozitif haftalık huzursuzluk artışını azaltır.',
+    effectLabel: '-%30 Çekirdek Dışı Huzursuzluk Artışı',
   },
   {
     id: 'adm_2',
@@ -280,8 +280,8 @@ export const TECH_TREE_1440: TechDefinition[] = [
     cost: 280,
     prerequisite: 'adm_1',
     description:
-      'Daimi elçilikler ve reisülküttap diplomasisiyle Haçlı/koalisyon ittifaklarını dağıtır.',
-    effectLabel: '-%25 Koalisyon Tepkisi & +15 İlişki',
+      'Diplomatik teşkilat, savaş sonrası ve kabine kararlarıyla kazanılan agresif genişlemeyi azaltır.',
+    effectLabel: '-%25 Agresif Genişleme Kazanımı',
   },
   {
     id: 'adm_3',
@@ -303,7 +303,7 @@ export const TECH_TREE_1440: TechDefinition[] = [
     prerequisite: 'adm_3',
     description:
       'Çok uluslu imparatorluk mülkünde sarsılmaz kanun düzeni ve yüksek tâbi devlet haracı sağlar.',
-    effectLabel: '+15 Maksimum İstikrar & +%50 Vasal Haracı',
+    effectLabel: '+%50 Vasal Haraç Geliri',
   },
 
   // SCIENCE (1440 Historical Era)
@@ -325,7 +325,7 @@ export const TECH_TREE_1440: TechDefinition[] = [
     cost: 310,
     prerequisite: 'sci_1',
     description:
-      'Yerli demir-bakır madenleri ve barut üretimiyle dış ticaret ambargolarına tam direnç kazandırır.',
+      'Üretim gelirini artırır ve yabancı ticaret ambargolarının ekonomi üzerindeki etkisini azaltır.',
     effectLabel: 'Ambargo Etkisi -%50 & +%15 Üretim',
   },
   {
@@ -336,8 +336,8 @@ export const TECH_TREE_1440: TechDefinition[] = [
     cost: 530,
     prerequisite: 'sci_2',
     description:
-      'Dünya haritaları, astronomi ve menzil istihbaratıyla düşman ordularının hareketlerini önceden çözer.',
-    effectLabel: '+%25 Araştırma & +%15 Savaş Skoru + Geniş Görüş',
+      'Haritacılık ve rasathaneler araştırma hızını artırır; haritadaki tüm bölgeleri görünür kılar.',
+    effectLabel: '+%25 Araştırma · Tüm Harita Görünür',
   },
   {
     id: 'sci_4',
@@ -348,7 +348,7 @@ export const TECH_TREE_1440: TechDefinition[] = [
     prerequisite: 'sci_3',
     description:
       'İmparatorluk mühendislik akademisiyle hem sivil üretimi hem askeri teknolojiyi çağın zirvesine çıkarır.',
-    effectLabel: '+%35 Ekonomik Çıktı & Bilimsel Üstünlük',
+    effectLabel: '+%35 Üretim Geliri',
   },
 ];
 
@@ -542,8 +542,8 @@ export const REFORMS_1440: ReformDefinition[] = [
     category: 'Maliye',
     costGold: 1150,
     costResearch: 120,
-    description: 'Gümüş akçe ve altın sultani ayarını koruyarak enflasyonu her ay düzenli düşürür.',
-    effectLabel: 'Aylık -%0.8 Enflasyon Düşüşü',
+    description: 'Her oyun günü enflasyon değişimini 0,025 puan azaltır.',
+    effectLabel: 'Günlük enflasyon değişimi −0,025 puan',
   },
   {
     id: 'ref_professional_army',
@@ -560,8 +560,8 @@ export const REFORMS_1440: ReformDefinition[] = [
     category: 'Ticaret',
     costGold: 1250,
     costResearch: 130,
-    description: 'Liman ve kervan yollarında tüccar güvenliğini sağlayarak gümrük ve vergi gelirini büyütür.',
-    effectLabel: '+%20 Vergi ve Ticaret Geliri',
+    description: 'Vergi gelirini ve yurt içi pazar ticaretini artırır.',
+    effectLabel: '+%20 Vergi Geliri · +%20 İç Pazar Ticareti',
   },
   {
     id: 'ref_national_defense_industry',
@@ -569,7 +569,7 @@ export const REFORMS_1440: ReformDefinition[] = [
     category: 'Savunma',
     costGold: 1650,
     costResearch: 160,
-    description: 'Yerli baruthane, dökümhane ve kışla altyapısıyla asker silahlandırma maliyetini düşürür.',
+    description: 'Yerli savunma sanayii asker toplama maliyetini azaltır.',
     effectLabel: '-%20 Asker Toplama Maliyeti',
   },
   {
@@ -578,7 +578,7 @@ export const REFORMS_1440: ReformDefinition[] = [
     category: 'Toplum',
     costGold: 1200,
     costResearch: 125,
-    description: 'Şehirlerde halkın refahını ve ilim üretimini yükselterek isyan riskini kalıcı azaltır.',
+    description: 'Yürürlüğe girdiğinde ulusal istikrarı 12 puan artırır ve günlük araştırmaya 5 puan ekler.',
     effectLabel: '+12 Ulusal İstikrar & +5 Araştırma/Gün',
   },
   {
@@ -587,8 +587,8 @@ export const REFORMS_1440: ReformDefinition[] = [
     category: 'Diplomasi',
     costGold: 1100,
     costResearch: 115,
-    description: 'Komşu hanedanlarla ilişkileri iyileştirir ve fetih sonrası koalisyon tepkisini hızla eritir.',
-    effectLabel: 'Yıllık -15 Agresif Genişleme & +15 İlişki',
+    description: 'Yürürlüğe girdiğinde agresif genişlemeyi 15 puan azaltır ve diğer ülkelerle ilişkiyi en çok 15 puan artırır.',
+    effectLabel: 'Bir kez −15 AE · Diğer ülkelerle +15 ilişki',
   },
 ];
 
@@ -603,8 +603,8 @@ export const REFORMS: ReformDefinition[] = [
     category: 'Ekonomi',
     costGold: 1150,
     costResearch: 120,
-    description: 'Enflasyonu her ay düzenli olarak düşürür ve finansal güveni artırır.',
-    effectLabel: 'Aylık -%0.8 Enflasyon Düşüşü',
+    description: 'Her oyun günü enflasyon değişimini 0,025 puan azaltır.',
+    effectLabel: 'Günlük enflasyon değişimi −0,025 puan',
   },
   {
     id: 'ref_professional_army',
@@ -621,8 +621,8 @@ export const REFORMS: ReformDefinition[] = [
     category: 'Ticaret',
     costGold: 1250,
     costResearch: 130,
-    description: 'Ticaret anlaşmalarından gelen geliri ve yabancı yatırımı büyütür.',
-    effectLabel: '+%20 Vergi ve Ticaret Geliri',
+    description: 'Vergi gelirini ve yurt içi pazar ticaretini artırır.',
+    effectLabel: '+%20 Vergi Geliri · +%20 İç Pazar Ticareti',
   },
   {
     id: 'ref_national_defense_industry',
@@ -630,7 +630,7 @@ export const REFORMS: ReformDefinition[] = [
     category: 'Savunma',
     costGold: 1650,
     costResearch: 160,
-    description: 'Asker toplama maliyetini düşürür ve kışlaların kapasitesini artırır.',
+    description: 'Asker toplama maliyetini %20 azaltır.',
     effectLabel: '-%20 Asker Toplama Maliyeti',
   },
   {
@@ -639,7 +639,7 @@ export const REFORMS: ReformDefinition[] = [
     category: 'Toplum',
     costGold: 1200,
     costResearch: 125,
-    description: 'Ulusal istikrarı yükseltir ve tüm bölgelerde isyan riskini kalıcı olarak azaltır.',
+    description: 'Yürürlüğe girdiğinde ulusal istikrarı 12 puan artırır ve günlük araştırmaya 5 puan ekler.',
     effectLabel: '+12 Ulusal İstikrar & +5 Araştırma/Gün',
   },
   {
@@ -648,8 +648,7 @@ export const REFORMS: ReformDefinition[] = [
     category: 'Diplomasi',
     costGold: 1100,
     costResearch: 115,
-    description: 'Diğer ülkelerle ilişkileri iyileştirir ve agresif genişleme cezasını hızla eritir.',
-    effectLabel: 'Yıllık -15 Agresif Genişleme & +15 İlişki',
+    description: 'Yürürlüğe girdiğinde agresif genişlemeyi 15 puan azaltır ve diğer ülkelerle ilişkiyi en çok 15 puan artırır.',
+    effectLabel: 'Bir kez −15 AE · Diğer ülkelerle +15 ilişki',
   },
 ];
-

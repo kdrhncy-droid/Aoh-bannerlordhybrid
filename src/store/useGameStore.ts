@@ -55,6 +55,7 @@ import {
 import {
   computeGameTick,
   pickEligibleCrisisEvent,
+  scaleUnits,
 } from '../engine/tickEngine';
 import { executeWartimeTradeRaidDomain } from '../engine/straitsAndTradeEngine';
 import {
@@ -276,65 +277,235 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       const terr = s.territories[territoryId];
       if (btlIdx === -1 && (!terr || !terr.siege)) return {};
 
-      if (tactic === 'RETREAT' && btlIdx !== -1) {
-        const btl = s.battles[btlIdx];
-        const isAttacker = btl.attackerId === s.playerNationId;
-        const fallbackTerrId = isAttacker
-          ? btl.fromTerritoryId ||
-            terr.neighbors.find((nId) => s.territories[nId]?.ownerId === s.playerNationId)
-          : terr.neighbors.find((nId) => s.territories[nId]?.ownerId === s.playerNationId);
+      if (btlIdx === -1 && tactic === 'BOMBARD' && terr?.siege) {
+        if (terr.siege.attackerId !== s.playerNationId) {
+          return { toastMessage: 'Sur bombardımanı yalnız kuşatmacı tarafından emredilebilir.' };
+        }
+        const wallBefore = Math.max(
+          0,
+          Math.min(100, terr.castleWallHp ?? terr.siege.wallIntegrity ?? 100)
+        );
+        if (wallBefore <= 0) {
+          return { toastMessage: `${terr.name} surları zaten yıkılmış durumda.` };
+        }
+        const wallAfter = Math.max(0, wallBefore - 20);
+        return {
+          territories: {
+            ...s.territories,
+            [territoryId]: {
+              ...terr,
+              castleWallHp: wallAfter,
+              siege: { ...terr.siege, wallIntegrity: wallAfter },
+            },
+          },
+          toastMessage: `${terr.name} surları bombardımanla %${wallBefore} → %${wallAfter} düştü.`,
+        };
+      }
 
-        if (fallbackTerrId && s.territories[fallbackTerrId]) {
-          const fallbackTerr = s.territories[fallbackTerrId];
-          const survivingTroops = isAttacker ? btl.attackerTroops : btl.defenderTroops;
-          const updatedBattles = s.battles.filter((_, idx) => idx !== btlIdx);
+      if (btlIdx === -1 || !terr) return {};
+
+      const btl = s.battles[btlIdx];
+      const isAttacker = btl.attackerId === s.playerNationId;
+      const isDefender = btl.defenderId === s.playerNationId;
+      if (!isAttacker && !isDefender) {
+        return { toastMessage: 'Bu muharebede taraf olmadığınız için komut veremezsiniz.' };
+      }
+
+      const normalizeBattleUnits = (
+        units: ActiveBattle['attackerUnits'],
+        troopCount: number
+      ) => {
+        if (troopCount <= 0) return { infantry: 0, armor: 0, airDrone: 0 };
+        const unitTotal = units.infantry + units.armor + units.airDrone;
+        return unitTotal > 0
+          ? scaleUnits(units, troopCount / unitTotal)
+          : { infantry: troopCount, armor: 0, airDrone: 0 };
+      };
+
+      if (tactic === 'RETREAT') {
+        const survivingTroops = isAttacker ? btl.attackerTroops : btl.defenderTroops;
+        const survivingUnits = normalizeBattleUnits(
+          isAttacker ? btl.attackerUnits : btl.defenderUnits,
+          survivingTroops
+        );
+        const candidateIds = Array.from(
+          new Set([
+            ...(isAttacker && btl.fromTerritoryId ? [btl.fromTerritoryId] : []),
+            ...terr.neighbors,
+          ])
+        ).filter((id) => id !== territoryId);
+        const fallbackTerr = candidateIds
+          .map((id) => s.territories[id])
+          .find((candidate) => candidate?.ownerId === s.playerNationId);
+        if (survivingTroops > 0 && !fallbackTerr) {
           return {
-            battles: updatedBattles,
-            activeBattleOverviewTerritoryId: null,
-            toastMessage: `Ordumuz ${fallbackTerr.name} eyaletine düzenli geri çekildi.`,
-            territories: {
-              ...s.territories,
-              [fallbackTerrId]: {
-                ...fallbackTerr,
-                garrison: fallbackTerr.garrison + survivingTroops,
-              },
+            toastMessage: 'Dost eyalete güvenli geri çekilme yolu yok; muharebe devam ediyor.',
+          };
+        }
+
+        const updatedBattles = s.battles.filter((_, idx) => idx !== btlIdx);
+        const updatedTerritories: Record<string, Territory> = { ...s.territories };
+        if (fallbackTerr && survivingTroops > 0) {
+          const stationedUnits = fallbackTerr.units || {
+            infantry: fallbackTerr.garrison,
+            armor: 0,
+            airDrone: 0,
+          };
+          updatedTerritories[fallbackTerr.id] = {
+            ...fallbackTerr,
+            garrison: fallbackTerr.garrison + survivingTroops,
+            units: {
+              infantry: stationedUnits.infantry + survivingUnits.infantry,
+              armor: stationedUnits.armor + survivingUnits.armor,
+              airDrone: stationedUnits.airDrone + survivingUnits.airDrone,
             },
           };
         }
+
+        let updatedNations = s.nations;
+        if (!isAttacker) {
+          const attackerSurvivors = Math.max(0, btl.attackerTroops);
+          const occupyingUnits = normalizeBattleUnits(
+            btl.attackerUnits,
+            attackerSurvivors
+          );
+          updatedTerritories[territoryId] = {
+            ...terr,
+            ownerId: attackerSurvivors > 0 ? btl.attackerId : terr.ownerId,
+            isOccupied: attackerSurvivors > 0,
+            occupiedById: attackerSurvivors > 0 ? btl.attackerId : undefined,
+            isCapital: attackerSurvivors > 0 ? false : terr.isCapital,
+            garrison: attackerSurvivors,
+            units: occupyingUnits,
+          };
+
+          const playerNation = s.nations[s.playerNationId];
+          if (attackerSurvivors > 0 && playerNation?.capitalTerritoryId === territoryId) {
+            const remainingTerritories = Object.values(s.territories).filter(
+              (candidate) =>
+                candidate.id !== territoryId && candidate.ownerId === s.playerNationId
+            );
+            updatedNations = {
+              ...s.nations,
+              [s.playerNationId]: remainingTerritories.length > 0
+                ? { ...playerNation, capitalTerritoryId: remainingTerritories[0].id }
+                : { ...playerNation, isEliminated: true },
+            };
+            if (remainingTerritories.length > 0) {
+              const nextCapital = remainingTerritories[0];
+              updatedTerritories[nextCapital.id] = {
+                ...updatedTerritories[nextCapital.id],
+                isCapital: true,
+              };
+            }
+          }
+        }
+
+        const outcomeDecided = isAttacker || btl.attackerTroops > 0;
+        const updatedWars = s.wars.map((war) => {
+          const involvesBoth =
+            (war.attackers.includes(btl.attackerId) &&
+              war.defenders.includes(btl.defenderId)) ||
+            (war.attackers.includes(btl.defenderId) &&
+              war.defenders.includes(btl.attackerId));
+          if (!involvesBoth) return war;
+          const attackerSide = war.attackers.includes(btl.attackerId);
+          const attackerWon = !isAttacker;
+          const scoreDelta = outcomeDecided
+            ? attackerWon === attackerSide
+              ? 28
+              : -28
+            : 0;
+          const attackerLosses = Math.max(
+            0,
+            (btl.attackerInitialTroops ?? btl.attackerTroops) - btl.attackerTroops
+          );
+          const defenderLosses = Math.max(
+            0,
+            (btl.defenderInitialTroops ?? btl.defenderTroops) - btl.defenderTroops
+          );
+          return {
+            ...war,
+            attackerWarScore: Math.max(
+              -100,
+              Math.min(100, (war.attackerWarScore ?? 0) + scoreDelta)
+            ),
+            casualtiesAttacker:
+              (war.casualtiesAttacker ?? 0) +
+              (attackerSide ? attackerLosses : defenderLosses),
+            casualtiesDefender:
+              (war.casualtiesDefender ?? 0) +
+              (attackerSide ? defenderLosses : attackerLosses),
+          };
+        });
+
+        const destinationText = fallbackTerr
+          ? `${fallbackTerr.name} eyaletine`
+          : 'dost topraklara';
+        const toastMessage = isAttacker
+          ? `Ordumuz ${terr.name} muharebesinden ${destinationText} ${survivingTroops.toLocaleString('tr-TR')} askerle çekildi.`
+          : btl.attackerTroops > 0
+          ? `Savunma hattı terk edildi; ${terr.name} eyaleti ${s.nations[btl.attackerId]?.name || 'düşman'} tarafından işgal edildi. ${survivingTroops.toLocaleString('tr-TR')} savunmacı ${destinationText} çekildi.`
+          : `Savunma birlikleri ${destinationText} çekildi; düşman kuvveti kalmadı.`;
+
+        return {
+          battles: updatedBattles,
+          wars: updatedWars,
+          nations: updatedNations,
+          territories: updatedTerritories,
+          activeBattleOverviewTerritoryId: null,
+          toastMessage,
+        };
       }
 
-      if (btlIdx !== -1) {
-        const btl = s.battles[btlIdx];
-        const isAttacker = btl.attackerId === s.playerNationId;
+      if (tactic === 'TURAN') {
+        const alreadyUsed = isAttacker
+          ? Boolean(btl.attackerTuranUsed)
+          : Boolean(btl.defenderTuranUsed);
+        if (alreadyUsed) {
+          return { toastMessage: 'Hilal & Turan taktiği bu muharebede zaten kullanıldı.' };
+        }
         const updatedBattles = [...s.battles];
-        if (tactic === 'TURAN') {
-          updatedBattles[btlIdx] = {
-            ...btl,
-            attackerMorale: isAttacker
-              ? Math.min(100, (btl.attackerMorale || 100) + 18)
-              : btl.attackerMorale,
-            defenderMorale: !isAttacker
-              ? Math.min(100, (btl.defenderMorale || 100) + 18)
-              : btl.defenderMorale,
-          };
-          return {
-            battles: updatedBattles,
-            toastMessage: 'Hilal & Turan taktiği emredildi! Kanat süvarileri hücuma geçti.',
-          };
-        }
-        if (tactic === 'BOMBARD') {
-          const enemyTroops = isAttacker ? btl.defenderTroops : btl.attackerTroops;
-          const hit = Math.min(enemyTroops - 200, Math.round(enemyTroops * 0.15));
-          updatedBattles[btlIdx] = {
-            ...btl,
-            attackerTroops: isAttacker ? btl.attackerTroops : Math.max(200, btl.attackerTroops - hit),
-            defenderTroops: !isAttacker ? btl.defenderTroops : Math.max(200, btl.defenderTroops - hit),
-          };
-          return {
-            battles: updatedBattles,
-            toastMessage: 'Şahi topçu ateşi düşman saflarını ve tabyalarını vurdu!',
-          };
-        }
+        updatedBattles[btlIdx] = {
+          ...btl,
+          attackerTuranUsed: isAttacker ? true : btl.attackerTuranUsed,
+          defenderTuranUsed: isDefender ? true : btl.defenderTuranUsed,
+          attackerTuranPowerBonus: isAttacker ? 18 : btl.attackerTuranPowerBonus,
+          defenderTuranPowerBonus: isDefender ? 18 : btl.defenderTuranPowerBonus,
+        };
+        return {
+          battles: updatedBattles,
+          toastMessage: 'Hilal & Turan taktiği hazır: bir sonraki muharebe raundunda +%18 güç sağlar.',
+        };
+      }
+
+      if (tactic === 'BOMBARD') {
+        const enemyTroops = isAttacker ? btl.defenderTroops : btl.attackerTroops;
+        const hit = Math.max(
+          0,
+          Math.min(Math.max(0, enemyTroops - 200), Math.round(enemyTroops * 0.15))
+        );
+        const remainingTroops = Math.max(0, enemyTroops - hit);
+        const enemyUnits = isAttacker ? btl.defenderUnits : btl.attackerUnits;
+        const remainingUnits = scaleUnits(
+          enemyUnits,
+          remainingTroops / Math.max(1, enemyTroops)
+        );
+        const updatedBattles = [...s.battles];
+        updatedBattles[btlIdx] = {
+          ...btl,
+          attackerTroops: isAttacker ? btl.attackerTroops : remainingTroops,
+          attackerUnits: isAttacker ? btl.attackerUnits : remainingUnits,
+          defenderTroops: isAttacker ? remainingTroops : btl.defenderTroops,
+          defenderUnits: isAttacker ? remainingUnits : btl.defenderUnits,
+        };
+        return {
+          battles: updatedBattles,
+          toastMessage:
+            hit > 0
+              ? `Topçu ateşi düşman kuvvetlerine ${hit.toLocaleString('tr-TR')} asker kayıp verdirdi.`
+              : 'Düşman kuvveti 200 asker tabanında; bombardıman ek kayıp vermedi.',
+        };
       }
 
       return {};
@@ -964,6 +1135,7 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
       enactReformDomain({
         reformId,
         nations: s.nations,
+        relations: s.relations,
         playerNationId: s.playerNationId,
         gameMode: s.gameMode,
       })
@@ -1050,7 +1222,6 @@ export const useGameStore = create<GameStoreState>((set, get) => ({
   },
 }));
 
-if (import.meta.env.DEV && typeof window !== 'undefined') {
+if (import.meta.env?.DEV && typeof window !== 'undefined') {
   (window as unknown as Record<string, unknown>).__GAME_STORE__ = useGameStore;
 }
-

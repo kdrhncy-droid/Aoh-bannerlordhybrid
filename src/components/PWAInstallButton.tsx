@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Download, Maximize2, Minimize2, Smartphone, WifiOff, X } from 'lucide-react';
 import { usePWAInstall } from '../hooks/usePWAInstall';
+import { useAccessibleDialog } from '../hooks/useAccessibleDialog';
 import { sound } from '../utils/soundEngine';
 
 interface PWAInstallButtonProps {
@@ -14,6 +15,9 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
   const { isInstallable, isInstalled, isIOS, isOnline, install } = usePWAInstall();
   const [showGuideModal, setShowGuideModal] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const guideDialogRef = useAccessibleDialog(showGuideModal, () =>
+    setShowGuideModal(false)
+  );
 
   useEffect(() => {
     const onFsChange = () => {
@@ -90,23 +94,32 @@ export const PWAInstallButton: React.FC<PWAInstallButtonProps> = ({
         typeof document !== 'undefined' &&
         createPortal(
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4">
-            <div className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 p-5 shadow-2xl text-slate-100 space-y-4">
+            <div
+              ref={guideDialogRef}
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="pwa-guide-title"
+              aria-describedby="pwa-guide-description"
+              tabIndex={-1}
+              className="w-full max-w-md rounded-2xl bg-slate-900 border border-slate-700 p-5 shadow-2xl text-slate-100 space-y-4"
+            >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <Smartphone className="w-5 h-5 text-emerald-400" />
-                  <h3 className="font-display text-base font-bold text-white">
+                  <h3 id="pwa-guide-title" className="font-display text-base font-bold text-white">
                     Android & Mobil Uygulama Kurulumu
                   </h3>
                 </div>
                 <button
                   onClick={() => setShowGuideModal(false)}
+                  aria-label="Kurulum yönergesini kapat"
                   className="min-w-[36px] min-h-[36px] rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
 
-              <div className="text-xs text-slate-300 space-y-2.5 leading-relaxed">
+              <div id="pwa-guide-description" className="text-xs text-slate-300 space-y-2.5 leading-relaxed">
                 <p>
                   <strong>Imperium 2026</strong>, PWA (Progressive Web App) teknolojisiyle telefonunuza tam ekran bir mobil oyun olarak kurulabilir ve internetsiz oynanabilir:
                 </p>

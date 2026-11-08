@@ -268,6 +268,7 @@ export interface Nation {
   inflation: number; // 0-100%
   researchPoints: number;
   activeResearch?: ActiveResearchProject | null;
+  researchProgressByTech?: Record<string, number>;
   stateReligion?: ReligionId;
   primaryCulture?: CultureId;
   taxRate: number; // 10 - 60%
@@ -298,6 +299,7 @@ export interface DiplomaticRelation {
   hasNonAggression: boolean;
   hasTradeAgreement: boolean;
   hasEmbargo: boolean;
+  embargoingNationIds?: string[];
   hasMilitaryAccess: boolean;
   truceUntilTick: number;
 }
@@ -331,6 +333,10 @@ export interface ActiveBattle {
   combatWidth?: number; // Savaş Genişliği
   attackerMorale?: number; // 0 to 100%
   defenderMorale?: number; // 0 to 100%
+  attackerTuranPowerBonus?: number; // One-round combat power bonus in percentage points
+  defenderTuranPowerBonus?: number;
+  attackerTuranUsed?: boolean;
+  defenderTuranUsed?: boolean;
   attackerFrontline?: number;
   attackerBackline?: number;
   defenderFrontline?: number;

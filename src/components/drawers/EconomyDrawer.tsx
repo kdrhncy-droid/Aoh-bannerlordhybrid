@@ -88,27 +88,33 @@ export const EconomyDrawer: React.FC<CommandDrawersProps> = ({
               +{playerEconomy.straitTollIncome + playerEconomy.seizedBlockadeIncome} Altın
             </span>
           </div>
-          <div className="flex justify-between py-1.5 border-b border-slate-800/80">
-            <span className="text-sky-200 flex items-center gap-1.5">
-              <span>
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2 py-1.5 border-b border-slate-800/80">
+            <div className="min-w-0">
+              <span className="text-sky-200">
                 {is1440
-                  ? '🐪 İpek & Baharat Kervan Payı'
-                  : '🚢 Küresel Deniz & Lojistik Koridoru'}
+                  ? '🐪 İpek & Baharat Kervan Geliri (Net)'
+                  : '🚢 Deniz & Lojistik Geliri (Net)'}
               </span>
               {playerEconomy.blockadePenaltyLoss > 0 && (
-                <span className="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300">
-                  -{playerEconomy.blockadePenaltyLoss} Abluka Kaybı
-                </span>
+                <p className="mt-0.5 text-[10px] leading-tight text-rose-300">
+                  Abluka kesintisi −{playerEconomy.blockadePenaltyLoss} Altın; net gelire zaten yansıtıldı.
+                </p>
               )}
-            </span>
+            </div>
             <span className="font-mono-num font-semibold text-sky-300">
               +{playerEconomy.caravanTradeIncome} Altın
             </span>
           </div>
           <div className="flex justify-between py-1.5 border-b border-slate-800/80">
-            <span className="text-slate-300">Vasal Devlet Haraçları</span>
+            <span className="text-slate-300">Vasal Devletlerden Haraç Geliri</span>
             <span className="font-mono-num font-semibold text-emerald-400">
               +{playerEconomy.vassalIncome} Altın
+            </span>
+          </div>
+          <div className="flex justify-between py-1.5 border-b border-slate-800/80">
+            <span className="text-slate-300">Üst Devlete Haraç Ödemesi</span>
+            <span className="font-mono-num font-semibold text-rose-400">
+              -{playerEconomy.vassalTributeOut} Altın
             </span>
           </div>
           <div className="flex justify-between py-1.5 border-b border-slate-800/80">

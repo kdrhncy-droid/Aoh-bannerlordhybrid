@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, Compass, ShieldAlert, Swords, X } from 'lucide-react';
 import { useGameStore } from './store/useGameStore';
 import { calculateNationEconomy } from './engine/simulationEngine';
@@ -12,20 +12,62 @@ import {
   initSaveStorage,
 } from './engine/saveManager';
 import { music } from './engine/musicEngine';
-import { WorldMapCanvas } from './components/WorldMapCanvas';
-import { TitleMenuModal } from './components/TitleMenuModal';
-import { CommandDrawers } from './components/CommandDrawers';
-import { CrisisAndNewsModal } from './components/CrisisAndNewsModal';
-import { SystemAndSaveModal } from './components/SystemAndSaveModal';
-import { TacticalBattleModal } from './components/TacticalBattleModal';
 import { TopHudBar } from './components/hud/TopHudBar';
 import { MapMacroMode, MapModePillBar } from './components/hud/MapModePillBar';
 import { SelectedProvinceBar } from './components/hud/SelectedProvinceBar';
 import { BottomNavBar } from './components/hud/BottomNavBar';
 import { AoH3OutlinerWidget } from './components/hud/AoH3OutlinerWidget';
 import { MehterhaneYoutubeDock } from './components/hud/MehterhaneYoutubeDock';
-import { AoH3BattleOverviewModal } from './components/AoH3BattleOverviewModal';
 import { performanceTelemetry } from './utils/performanceTelemetry';
+import { useAccessibleDialog } from './hooks/useAccessibleDialog';
+
+const LazyTitleMenuModal = lazy(() =>
+  import('./components/TitleMenuModal').then((module) => ({
+    default: module.TitleMenuModal,
+  }))
+);
+const LazyWorldMapCanvas = lazy(() =>
+  import('./components/WorldMapCanvas').then((module) => ({
+    default: module.WorldMapCanvas,
+  }))
+);
+const LazyCommandDrawers = lazy(() =>
+  import('./components/CommandDrawers').then((module) => ({
+    default: module.CommandDrawers,
+  }))
+);
+const LazyCrisisAndNewsModal = lazy(() =>
+  import('./components/CrisisAndNewsModal').then((module) => ({
+    default: module.CrisisAndNewsModal,
+  }))
+);
+const LazySystemAndSaveModal = lazy(() =>
+  import('./components/SystemAndSaveModal').then((module) => ({
+    default: module.SystemAndSaveModal,
+  }))
+);
+const LazyTacticalBattleModal = lazy(() =>
+  import('./components/TacticalBattleModal').then((module) => ({
+    default: module.TacticalBattleModal,
+  }))
+);
+const LazyAoH3BattleOverviewModal = lazy(() =>
+  import('./components/AoH3BattleOverviewModal').then((module) => ({
+    default: module.AoH3BattleOverviewModal,
+  }))
+);
+
+function DialogLoadingFallback() {
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/80 text-sm font-semibold text-amber-200"
+    >
+      Oyun arayüzü yükleniyor…
+    </div>
+  );
+}
 
 class GameErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -178,7 +220,8 @@ function GameAppInner() {
   // Auto-dismiss floating toast banner
   useEffect(() => {
     if (!toastMessage) return;
-    const t = setTimeout(() => store.showToast(null), 3600);
+    const durationMs = Math.min(12_000, Math.max(4_000, toastMessage.length * 45));
+    const t = setTimeout(() => store.showToast(null), durationMs);
     return () => clearTimeout(t);
   }, [toastMessage, store.showToast]);
 
@@ -198,10 +241,16 @@ function GameAppInner() {
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (screenState !== 'PLAYING') return;
-      if (e.code === 'Space' && document.activeElement?.tagName !== 'INPUT') {
-        e.preventDefault();
-        store.togglePause();
-      }
+      if (e.code !== 'Space') return;
+      const target = e.target instanceof HTMLElement ? e.target : null;
+      if (
+        target?.isContentEditable ||
+        target?.closest(
+          'input, textarea, select, button, a[href], [role="button"], [role="link"], [role="checkbox"], [role="switch"], [contenteditable="true"]'
+        )
+      ) return;
+      e.preventDefault();
+      store.togglePause();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
@@ -263,6 +312,12 @@ function GameAppInner() {
   const pendingToTerritory = pendingWarMove
     ? territories[pendingWarMove.toId]
     : null;
+  const warConfirmationOpen = Boolean(
+    pendingWarMove && pendingTargetNation && pendingFromTerritory && pendingToTerritory
+  );
+  const warConfirmationRef = useAccessibleDialog(warConfirmationOpen, () =>
+    store.setPendingWarMove(null)
+  );
 
   const handleMapSelectTerritory = (terrId: string | null) => {
     if (!terrId) {
@@ -278,7 +333,7 @@ function GameAppInner() {
       return;
     }
     if (macroMode !== 'NONE' && terr) {
-      store.selectTerritory(terrId);
+      store.selectTerritoryOnMap(terrId);
       if (terr.ownerId !== playerNationId) {
         store.showToast('Makro işlem yalnızca kendi eyaletlerimizde kullanılabilir.');
         return;
@@ -304,69 +359,89 @@ function GameAppInner() {
       className="relative w-screen h-[100dvh] overflow-hidden bg-[#060B16] select-none flex flex-col"
     >
       {screenState === 'TITLE_MENU' && (
-        <TitleMenuModal
-          nations={nations}
-          territories={territories}
-          selectedMode={gameMode}
-          selectedNationId={playerNationId}
-          hasSavedGame={hasSavedGame}
-          settings={settings}
-          onUpdateSettings={store.updateSettings}
-          onSelectMode={store.selectScenarioMode}
-          onSelectNation={store.selectPlayerNation}
-          onStartNewGame={store.startNewGame}
-          onLoadSavedGame={store.loadMostRecentSave}
-        />
+        <Suspense fallback={<DialogLoadingFallback />}>
+          <LazyTitleMenuModal
+            nations={nations}
+            territories={territories}
+            selectedMode={gameMode}
+            selectedNationId={playerNationId}
+            hasSavedGame={hasSavedGame}
+            settings={settings}
+            onUpdateSettings={store.updateSettings}
+            onSelectMode={store.selectScenarioMode}
+            onSelectNation={store.selectPlayerNation}
+            onStartNewGame={store.startNewGame}
+            onLoadSavedGame={store.loadMostRecentSave}
+          />
+        </Suspense>
       )}
 
-      <CrisisAndNewsModal
-        activeCrisis={activeCrisis}
-        onResolveCrisis={store.resolveCrisis}
-        showNewsDrawer={showNewsDrawer}
-        onCloseNewsDrawer={() => store.setShowNewsDrawer(false)}
-        newsEvents={newsEvents}
-        onTriggerManualCabinetDecision={store.triggerManualCabinetDecision}
-      />
+      {(activeCrisis || showNewsDrawer) && (
+        <Suspense fallback={<DialogLoadingFallback />}>
+          <LazyCrisisAndNewsModal
+            activeCrisis={activeCrisis}
+            onResolveCrisis={store.resolveCrisis}
+            showNewsDrawer={showNewsDrawer}
+            onCloseNewsDrawer={() => store.setShowNewsDrawer(false)}
+            newsEvents={newsEvents}
+            onTriggerManualCabinetDecision={store.triggerManualCabinetDecision}
+          />
+        </Suspense>
+      )}
 
-      <SystemAndSaveModal
-        isOpen={showSystemModal}
-        onClose={() => store.setShowSystemModal(false)}
-        settings={settings}
-        onUpdateSettings={store.updateSettings}
-        soundEnabled={soundEnabled}
-        onToggleSound={store.toggleSound}
-        newsCount={newsEvents.length}
-        onOpenNewsDrawer={() => store.setShowNewsDrawer(true)}
-        onReturnToTitleMenu={() => {
-          store.setSpeed(0);
-          store.setScreenState('TITLE_MENU');
-        }}
-        onSaveToSlot={store.saveToSlot}
-        onLoadRecord={store.loadRecord}
-        onShowToast={store.showToast}
-      />
+      {showSystemModal && (
+        <Suspense fallback={<DialogLoadingFallback />}>
+          <LazySystemAndSaveModal
+            isOpen={showSystemModal}
+            onClose={() => store.setShowSystemModal(false)}
+            settings={settings}
+            onUpdateSettings={store.updateSettings}
+            soundEnabled={soundEnabled}
+            onToggleSound={store.toggleSound}
+            newsCount={newsEvents.length}
+            onOpenNewsDrawer={() => store.setShowNewsDrawer(true)}
+            onReturnToTitleMenu={() => {
+              store.setSpeed(0);
+              store.setScreenState('TITLE_MENU');
+            }}
+            onSaveToSlot={store.saveToSlot}
+            onLoadRecord={store.loadRecord}
+            onShowToast={store.showToast}
+          />
+        </Suspense>
+      )}
 
       {activeTacticalBattle && (
-        <TacticalBattleModal
-          battleState={activeTacticalBattle}
-          playerNationId={playerNationId}
-          nations={nations}
-          territories={territories}
-          onCloseAndApplyOutcome={store.applyBattleOutcome}
-        />
+        <Suspense fallback={<DialogLoadingFallback />}>
+          <LazyTacticalBattleModal
+            battleState={activeTacticalBattle}
+            playerNationId={playerNationId}
+            nations={nations}
+            territories={territories}
+            onCloseAndApplyOutcome={store.applyBattleOutcome}
+          />
+        </Suspense>
       )}
 
       {/* AoH3-Style Border Violation & War Declaration Confirmation Modal */}
       {pendingWarMove && pendingTargetNation && pendingFromTerritory && pendingToTerritory && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-3 bg-slate-950/88">
-          <div className="w-full max-w-md bg-slate-900 border-2 border-rose-500/70 rounded-2xl shadow-2xl overflow-hidden text-slate-100">
+          <div
+            ref={warConfirmationRef}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="war-confirmation-title"
+            aria-describedby="war-confirmation-description"
+            tabIndex={-1}
+            className="w-full max-w-md bg-slate-900 border-2 border-rose-500/70 rounded-2xl shadow-2xl overflow-hidden text-slate-100"
+          >
             <div className="px-4 py-3 bg-gradient-to-r from-rose-950 via-slate-900 to-slate-950 border-b border-rose-500/40 flex items-center justify-between">
               <div className="flex items-center gap-2.5">
                 <div className="w-8 h-8 rounded-xl bg-rose-600 flex items-center justify-center shadow">
                   <ShieldAlert className="w-5 h-5 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-display font-bold text-sm sm:text-base text-white">
+                  <h3 id="war-confirmation-title" className="font-display font-bold text-sm sm:text-base text-white">
                     Sınır İhlali & Savaş İlanı Onayı
                   </h3>
                   <p className="text-[11px] text-rose-300">
@@ -376,6 +451,7 @@ function GameAppInner() {
               </div>
               <button
                 onClick={() => store.setPendingWarMove(null)}
+                aria-label="Savaş ilanı onayını kapat"
                 className="w-7 h-7 rounded-lg bg-slate-800 hover:bg-slate-700 flex items-center justify-center text-slate-400 hover:text-white cursor-pointer"
               >
                 <X className="w-4 h-4" />
@@ -402,7 +478,7 @@ function GameAppInner() {
                 </div>
               </div>
 
-              <p className="text-slate-300 leading-relaxed">
+              <p id="war-confirmation-description" className="text-slate-300 leading-relaxed">
                 <strong>{pendingFromTerritory.name}</strong> eyaletindeki ordunuzu{' '}
                 <strong>{pendingTargetNation.name}</strong> egemenliğindeki{' '}
                 <strong>{pendingToTerritory.name}</strong> toprağına yürütmek üzeresiniz. Aranızda resmi bir savaş veya askeri geçiş antlaşması bulunmuyor.
@@ -461,24 +537,37 @@ function GameAppInner() {
       />
 
       <div className="relative flex-1 w-full overflow-hidden">
-        <WorldMapCanvas
-          features={features}
-          territories={territories}
-          nations={nations}
-          relations={relations}
-          wars={wars}
-          battles={battles}
-          movements={movements}
-          playerNationId={playerNationId}
-          selectedTerritoryId={selectedTerritoryId}
-          armyOrderSourceId={armyOrderSourceId}
-          mapMode={mapMode}
-          fogOfWarEnabled={settings.fogOfWarEnabled}
-          showZoomControls={settings.showZoomControls}
-          onSelectTerritory={handleMapSelectTerritory}
-          onExecuteArmyMove={store.executeArmyMove}
-          onCancelArmyOrder={() => store.setArmyOrderSourceId(null)}
-        />
+        <Suspense
+          fallback={
+            <div
+              role="status"
+              aria-live="polite"
+              className="absolute inset-0 flex items-center justify-center text-sm text-slate-400"
+            >
+              Harita yükleniyor…
+            </div>
+          }
+        >
+          <LazyWorldMapCanvas
+            features={features}
+            territories={territories}
+            nations={nations}
+            relations={relations}
+            wars={wars}
+            battles={battles}
+            movements={movements}
+            playerNationId={playerNationId}
+            selectedTerritoryId={selectedTerritoryId}
+            armyOrderSourceId={armyOrderSourceId}
+            mapMode={mapMode}
+            mapLabelDensity={settings.mapLabelDensity}
+            fogOfWarEnabled={settings.fogOfWarEnabled}
+            showZoomControls={settings.showZoomControls}
+            onSelectTerritory={handleMapSelectTerritory}
+            onExecuteArmyMove={store.executeArmyMove}
+            onCancelArmyOrder={() => store.setArmyOrderSourceId(null)}
+          />
+        </Suspense>
 
         <MapModePillBar
           mapMode={mapMode}
@@ -532,7 +621,7 @@ function GameAppInner() {
 
         {activeBattleOverviewTerritoryId &&
           territories[activeBattleOverviewTerritoryId] && (
-            <AoH3BattleOverviewModal
+            <LazyAoH3BattleOverviewModal
               battle={battles.find(
                 (b) => b.territoryId === activeBattleOverviewTerritoryId
               )}
@@ -547,49 +636,53 @@ function GameAppInner() {
             />
           )}
 
-        <CommandDrawers
-          activeTab={activeTab}
-          onClose={() => store.setActiveTab('NONE')}
-          playerNation={playerNation}
-          playerEconomy={playerEconomy}
-          selectedTerritory={selectedTerritory}
-          territories={territories}
-          nations={nations}
-          relations={relations}
-          wars={wars}
-          movements={movements}
-          moveRatio={moveRatio}
-          onSetMoveRatio={store.setMoveRatio}
-          onStartArmyOrderMode={store.setArmyOrderSourceId}
-          onExecuteArmyMove={store.executeArmyMove}
-          onRecruitUnit={store.recruitUnit}
-          onRecruitOrAssignGeneral={store.recruitOrAssignGeneral}
-          onUpgradeBuilding={store.upgradeBuilding}
-          onAssimilateTerritory={store.assimilateTerritory}
-          onStartMissionary={store.startMissionary}
-          onFormEmpire={store.formEmpire}
-          onUpdateTaxRate={store.updateTaxRate}
-          onUpdateBudget={store.updateBudget}
-          onCentralBankIntervention={store.centralBankIntervention}
-          onIssueWarBonds={store.issueWarBonds}
-          onChangeIdeology={store.changeIdeology}
-          onStartResearch={store.startResearch}
-          onCancelResearch={store.cancelResearch}
-          onBoostResearch={store.boostResearch}
-          onUnlockTech={store.unlockTech}
-          onEnactReform={store.enactReform}
-          onDiplomaticAction={store.diplomaticAction}
-          onPeaceDeal={store.peaceDeal}
-          onSelectTerritory={store.selectTerritory}
-          fogOfWarEnabled={settings.fogOfWarEnabled}
-          onModernizeNationalArmy={store.modernizeNationalArmy}
-          onAssignFiefLord={store.assignFiefLord}
-          onBestowFavorOnLord={store.bestowFavorOnLord}
-          onToggleCallLordToBanner={store.toggleCallLordToBanner}
-          onRaidEnemyTradeRoutes={store.raidEnemyTradeRoutes}
-          onSiegeBombardment={store.siegeBombardment}
-          gameMode={gameMode}
-        />
+        {activeTab !== 'NONE' && (
+          <Suspense fallback={<DialogLoadingFallback />}>
+            <LazyCommandDrawers
+              activeTab={activeTab}
+              onClose={() => store.setActiveTab('NONE')}
+              playerNation={playerNation}
+              playerEconomy={playerEconomy}
+              selectedTerritory={selectedTerritory}
+              territories={territories}
+              nations={nations}
+              relations={relations}
+              wars={wars}
+              movements={movements}
+              moveRatio={moveRatio}
+              onSetMoveRatio={store.setMoveRatio}
+              onStartArmyOrderMode={store.setArmyOrderSourceId}
+              onExecuteArmyMove={store.executeArmyMove}
+              onRecruitUnit={store.recruitUnit}
+              onRecruitOrAssignGeneral={store.recruitOrAssignGeneral}
+              onUpgradeBuilding={store.upgradeBuilding}
+              onAssimilateTerritory={store.assimilateTerritory}
+              onStartMissionary={store.startMissionary}
+              onFormEmpire={store.formEmpire}
+              onUpdateTaxRate={store.updateTaxRate}
+              onUpdateBudget={store.updateBudget}
+              onCentralBankIntervention={store.centralBankIntervention}
+              onIssueWarBonds={store.issueWarBonds}
+              onChangeIdeology={store.changeIdeology}
+              onStartResearch={store.startResearch}
+              onCancelResearch={store.cancelResearch}
+              onBoostResearch={store.boostResearch}
+              onUnlockTech={store.unlockTech}
+              onEnactReform={store.enactReform}
+              onDiplomaticAction={store.diplomaticAction}
+              onPeaceDeal={store.peaceDeal}
+              onSelectTerritory={store.selectTerritory}
+              fogOfWarEnabled={settings.fogOfWarEnabled}
+              onModernizeNationalArmy={store.modernizeNationalArmy}
+              onAssignFiefLord={store.assignFiefLord}
+              onBestowFavorOnLord={store.bestowFavorOnLord}
+              onToggleCallLordToBanner={store.toggleCallLordToBanner}
+              onRaidEnemyTradeRoutes={store.raidEnemyTradeRoutes}
+              onSiegeBombardment={store.siegeBombardment}
+              gameMode={gameMode}
+            />
+          </Suspense>
+        )}
       </div>
 
       <MehterhaneYoutubeDock />

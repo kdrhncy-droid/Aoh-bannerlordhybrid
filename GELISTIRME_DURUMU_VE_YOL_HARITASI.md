@@ -205,8 +205,10 @@ Kontrol edilen görünümler:
 
 ### 3.5 Chrome mobil/dar yatay doğrulamaları
 
-Kontrol edilen görünüm:
+Kontrol edilen emüle edilmiş dar-yatay görünümler:
 
+- 667×375 telefon görünümü
+- 800×400 telefon görünümü
 - 896×414 dar yatay telefon görünümü
 
 Kontrol edilen etkileşimler:
@@ -218,6 +220,9 @@ Kontrol edilen etkileşimler:
 - Eyalet yönetim panelini açma
 - Mobil alt navigasyonun korunması
 - Eyalet özeti ve bina/sefer kartlarının taşmaması
+- 2026-11-08'de Ekonomi drawer'ı üç viewportta açıkken karşılaştırma: genişlik %56'dan %48'e indirildi; ölçülen drawer genişlikleri 320 px, 384 px ve 430 px.
+- Üç viewportta `documentElement.scrollWidth` ve `body.scrollWidth`, viewport genişliğine eşit; yatay sayfa taşması görülmedi.
+- Drawer katmanı sabit müzik widget'ının üstüne alındı; aktif panel içeriği widget tarafından örtülmüyor.
 
 ### 3.6 Görsel çıktı arşivi
 
@@ -238,6 +243,26 @@ references/aoh3/
 - `imperium-ideology-cards-themed.webp`
 - `imperium-diplomacy-cards-themed.webp`
 - `imperium-reforms-tech-themed.webp`
+- `imperium-panel-mobile-667x375-after.png`
+- `imperium-panel-mobile-800x400-after.png`
+- `imperium-panel-mobile-896x414-after.png`
+
+### 3.7 2026-11-08 — AOH3 referanslı dar-yatay drawer iyileştirmesi
+
+- Önce AOH3 resmi Google Play ekran görüntüleri ve Steam'deki eyalet geliştirici yazısı incelendi. Kaynaklar ve çıkarım sınırları `references/aoh3/UI-RESEARCH-2026-11-08.md` içinde tutuluyor.
+- `src/index.css` içindeki yatay telefon kuralında drawer genişliği `%56vw` yerine `min(48vw, 480px)` oldu. Harita ana yüzey olarak daha fazla görünür kalıyor.
+- Drawer `z-index: 40` ile sabit müzik kontrolünün üstünde açılıyor; açık panel içeriğinin üzerine widget binmiyor.
+- `npm run build`: başarılı. Bundle boyutu için mevcut 750 kB üzeri uyarısı sürüyor.
+- `node --import tsx --test src/engine/simulationEngine.test.ts`: 16 test geçti, 0 başarısız.
+- Kontrol yalnızca tarayıcı emülasyonudur; portre görünüm, gerçek Android cihaz, safe-area/çentik ve diğer drawer türleri henüz doğrulanmadı. TODO'da açık bırakıldı.
+
+### 3.8 2026-11-08 — Yönlü ticaret ambargosu düzeltmesi
+
+- `DiplomaticRelation` yönlü `embargoingNationIds` alanını taşıyor; ekonomi cezası yalnız ambargo hedefinin gelirine uygulanıyor.
+- Boğaz/koridor engeli gelen ambargoyu dikkate alıyor; ambargo uygulayıcısının kendi ticaret rotası cezalandırılmıyor. İki ülkenin karşılıklı ambargoları bağımsız açılıp kapanabiliyor.
+- Eyalet diplomasisi paneli uygulayıcı ve hedef yönünü ayrı gösteriyor. Ticaret anlaşması eylemi mevcut simetrik davranışla tutarlı olarak ambargo listesini de temizliyor.
+- Eski kayıtlardaki yönsüz `hasEmbargo` için deterministik uyumluluk kuralı: yön listesi yoksa `nationA` uygulayıcı sayılır; iki taraf birden cezalandırılmaz.
+- `npm run lint`: başarılı. `node --import tsx --test src/engine/simulationEngine.test.ts`: 22 test geçti, 0 başarısız. `npm run build`: başarılı; 750 kB üzeri JS chunk uyarısı devam ediyor.
 
 ---
 
@@ -249,7 +274,7 @@ references/aoh3/
 4. Reform kartları ikonlu hâle geldi fakat reformların kategori ve önkoşul ilişkileri görsel bir ağ olarak gösterilmiyor.
 5. Din ve kültür lejantları görsel olsa da eyalet panelinde seçim/uygulama akışı daha fazla ikonlaştırılabilir.
 6. Bazı uzun özel isimler ve açıklamalar dar telefonlarda tek satıra sıkışabiliyor; tüm kritik metinlerde daha agresif `line-clamp` ve ikincil detay açılımı gerekebilir.
-7. `geojson` tip bağımlılığı çözülmediği için temiz TypeScript doğrulaması alınamıyor.
+7. `npm run lint` (`tsc --noEmit`) 2026-11-08'de geçti; önceki `geojson` tip çözümleme hatası mevcut kurulumda tekrarlanmadı. Temiz kurulum/CI ortamında da yeniden doğrulanmalı.
 8. Ana JavaScript bundle büyük; ileride panel bazlı lazy loading ve code splitting yapılmalı.
 9. Telemetri mevcut fakat gerçek fiziksel telefon cihazları üzerinde kapsamlı pan/zoom ve simülasyon benchmark’ı henüz yapılmadı.
 10. 60 FPS için henüz genel başarı iddiası yapılmamalı; cihaz bazlı ölçüm raporu gerekli.
@@ -375,3 +400,20 @@ Bir görev tamamlandı sayılmadan önce aşağıdaki kontroller yapılacak:
 ## 7. Son kayıt
 
 Bu dosya, proje geliştirme sırasındaki testleri, görsel gözlemleri, açık teknik borçları ve sonraki görevleri tek yerde toplamak için oluşturuldu. Ayrıntılı değişiklik geçmişi ve tarihli düzeltmeler ayrıca `YAPILACAKLAR_LISTESI.md` içinde tutuluyor.
+
+
+### 3.9 2026-11-08 — Mobil HUD/toast düzeltmeleri ve son regresyon geçişi
+
+- 320×720, 390×844, 844×390 ve 1366×768 viewportlarında taze oyun başlatma ile kontrol yapıldı. Sayfa ve gövde yatay genişliği her görünümde viewport genişliğiyle aynı kaldı; emüle edilmiş mobil ekranlarda görünen kritik düğmeler 44 px dokunma alanı kuralına uyuyor.
+- Dar portre başlığında devlet adı/tarihi ile simülasyon düğmeleri ayrı satırlara akıtıldı. 390×844 Ekonomi çekmecesinde başlık, gelir/gider satırları ve eylemler görünür; panel HUD altından başlıyor ve alt gezinme üzerinde bitiyor. Drawer müzik dock'unun üstünde kalıyor.
+- Uzun toast'lar artık dar cihazlarda normal satırlara sarılıyor, viewport genişliğine göre sınırlandırılıyor ve gerektiğinde içeride kaydırılabiliyor. `role="status"`, `aria-live="polite"` ve `aria-atomic="true"` korunuyor. 320×720, 390×844 ve 844×390 emülasyonlarında bildirim yatay taşma üretmedi; yatay toast iki satırlı üst HUD'un altına yerleşiyor. Drawer açıkken panel, toast katmanının üzerinde kalıyor.
+- Askerî geçiş izni verilirken ilişkiye +8 ekleniyor; iptal işlemi ilişki puanı veya diplomasi puanı kazandırmıyor. UI, etkin iznin iptal durumunda bonus kazanılacağı izlenimini vermiyor. Bu davranış için regresyon testi eklendi.
+- Yeni görsel kanıtlar `references/aoh3/responsive-final/` altında korundu: `aoh-responsive-320x720.png`, `aoh-responsive-390x844-economy.png`, `aoh-responsive-844x390.png` ve `aoh-responsive-1366x768.png`.
+- Son doğrulama: `npm test` **37/37 geçti**, `npm run lint` başarılı, `npm run build` başarılı. Eski `server.js` clean hedefi kaldırıldı; kaynakta kullanılmayan `@google/genai`, `dotenv`, `express`, `@types/express` ve `motion` ile bunlara ait lock girdileri temizlendi. Doğrudan kaynak/script taramasında bu paketlere başvuru kalmadı.
+- Kontroller Chromium viewport emülasyonudur; gerçek Android cihaz, ekran çentiği/safe-area ve fiziksel gezinme hareketleri bu geçişte doğrulanmadı. Diğer bütün ekonomi/diplomasi/teknoloji/kriz ekranlarının metinlerini tüm dört boyutta tek tek doğrulama işi TODO'da açık kalıyor.
+
+
+Ayrıca Sistem menüsü gerçek HUD düğmesiyle açılarak klavye duman testi yapıldı: açılış odağı dialog içine girdi; Tab ve Shift+Tab iki uçta odak döngüsünü korudu; Escape iletişim kutusunu kapattı ve odağı açan Menü düğmesine geri verdi. TODO'da açık kalan üç başlık, teknoloji kartlarının tüm mekaniklerle eksiksiz çapraz denetimi ile bütün panel/kriz metinlerinin dört viewportta tek tek görsel kontrolüdür.
+
+
+Son bağımlılık taramasında `autoprefixer` için de kaynak, build yapılandırması veya script referansı bulunmadığından kaldırıldı; `bun.lock` güncellendi. Böylece açıkça kullanılmayan paket temizliği, var olan tarihî yapılacaklar notuyla da uyumlu hâle getirildi.

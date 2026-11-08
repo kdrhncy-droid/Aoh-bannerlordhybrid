@@ -16,6 +16,7 @@ import {
   UnitComposition,
 } from '../types/game';
 import { relationKey } from './worldBuilder';
+import { isNationEmbargoed } from './embargoUtils';
 import { TERRAIN_INFO } from './pashaAndFiefEngine';
 import {
   calculateNationTradeAndStraits,
@@ -36,6 +37,7 @@ export interface NationEconomyBreakdown {
   blockadePenaltyLoss: number;
   tradeDetails: NationTradeAndStraitsSummary;
   vassalIncome: number;
+  vassalTributeOut: number;
   militaryUpkeep: number;
   inflationPenalty: number;
   inflationRelief: number;
@@ -86,6 +88,7 @@ export function getOrCreateRelation(
     hasNonAggression: false,
     hasTradeAgreement: false,
     hasEmbargo: false,
+    embargoingNationIds: [],
     hasMilitaryAccess: false,
     truceUntilTick: 0,
   };
@@ -182,6 +185,18 @@ export function isAtWar(
   );
 }
 
+export function getWarScoreForNation(
+  war: ActiveWar,
+  nationId: string
+): number | null {
+  if (war.attackers?.includes(nationId) || war.attackerId === nationId) {
+    return war.attackerWarScore;
+  }
+  if (war.defenders?.includes(nationId) || war.defenderId === nationId) {
+    return -war.attackerWarScore;
+  }
+  return null;
+}
 
 export function calculateNationEconomy(
   nation: Nation,
@@ -302,13 +317,14 @@ export function calculateNationEconomy(
     if (!rel) return;
     if (rel.nationA === nation.id || rel.nationB === nation.id) {
       if (rel.hasTradeAgreement) tradeAgreementCount++;
-      if (rel.hasEmbargo) embargoCount++;
+      if (isNationEmbargoed(rel, nation.id)) embargoCount++;
     }
   });
 
   let tradeMult =
     1 + tradeHubBonus + tradeAgreementCount * 0.14 + resourceEffects.tradePct / 100;
   if (unlockedTechs.includes('eco_3')) tradeMult += 0.3;
+  if (enactedReforms.includes('ref_free_trade_zones')) tradeMult += 0.2;
 
   const embargoResistance = unlockedTechs.includes('sci_2') ? 0.5 : 1.0;
   const embargoFactor = Math.max(
@@ -365,13 +381,13 @@ export function calculateNationEconomy(
   }
   const militaryUpkeep = Math.round((totalTroops / 1000) * upkeepPerThousand);
 
-  const grossIncome =
-    taxIncome + productionIncome + tradeIncome + vassalIncome - vassalTributeOut;
+  const grossIncome = taxIncome + productionIncome + tradeIncome + vassalIncome;
+  const incomeAfterTribute = grossIncome - vassalTributeOut;
   const inflationPenalty = Math.round(
-    grossIncome * Math.min(0.65, (nation.inflation || 0) / 120)
+    incomeAfterTribute * Math.min(0.65, (nation.inflation || 0) / 120)
   );
 
-  const netDailyGold = grossIncome - militaryUpkeep - inflationPenalty;
+  const netDailyGold = incomeAfterTribute - militaryUpkeep - inflationPenalty;
 
   let researchBase =
     2.5 +
@@ -406,6 +422,7 @@ export function calculateNationEconomy(
     blockadePenaltyLoss,
     tradeDetails,
     vassalIncome,
+    vassalTributeOut,
     militaryUpkeep,
     inflationPenalty,
     inflationRelief: Math.min(0.2, tradeHubLevels * 0.02),

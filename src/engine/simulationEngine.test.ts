@@ -4,20 +4,39 @@ import {
   calculateNationEconomy,
   formatGameDate,
   getOrCreateRelation,
+  getWarScoreForNation,
   isAtWar,
   resolveWarParticipants,
 } from './simulationEngine';
+import { isNationEmbargoed } from './embargoUtils';
+import {
+  calculateBlockadedCorridorIncome,
+  calculateNationTradeAndStraits,
+} from './straitsAndTradeEngine';
+import { hydrateSavedPayload } from './saveManager';
+import type { SaveGamePayload } from './saveManager';
+import { evaluateWeeklyUnrestAndRebellions } from './aiAndRebellionEngine';
 import {
   assimilateTerritoryDomain,
+  cancelResearchDomain,
+  enactReformDomain,
   executeArmyMoveDomain,
   formEmpireDomain,
+  resolveCrisisDomain,
+  siegeBombardmentDomain,
   startMissionaryDomain,
   startResearchDomain,
   upgradeBuildingDomain,
 } from './empireAndArmyActions';
-import { ActiveWar, DiplomaticRelation, Nation, Territory } from '../types/game';
+import {
+  adjustAggressiveExpansionGain,
+  adjustOccupiedUnrestDrift,
+} from './technologyEffects';
+import { ActiveBattle, ActiveWar, DiplomaticRelation, Nation, Territory } from '../types/game';
 import { resolveTerritoryFillColor } from '../map/mapPolygonRenderer';
+import { getMapLabelThresholds } from '../map/mapLabelsAndUnitsRenderer';
 import { RELIGIONS, CULTURES } from '../data/religionAndCultureData';
+import { useGameStore } from '../store/useGameStore';
 
 test('formatGameDate formats 1440 and 2026 dates and optional hours accurately', () => {
   assert.equal(formatGameDate(0, 'EMPIRES_1440'), '1 Oca 1440');
@@ -163,6 +182,39 @@ test('executeArmyMoveDomain blocks unauthorized entry into neutral foreign provi
   });
   assert.equal(confirmedRes.wars?.length, 1);
   assert.ok((confirmedRes.movements?.length || 0) >= 1);
+  const halfMove = confirmedRes.movements?.[0];
+  const halfDeparture = confirmedRes.territories?.['792'];
+  assert.equal(halfMove?.troops, 5750);
+  assert.equal(halfDeparture?.garrison, 6250);
+  assert.equal(
+    halfMove?.units.infantry + halfMove?.units.armor + halfMove?.units.airDrone,
+    5750
+  );
+  assert.equal(
+    halfDeparture?.units.infantry +
+      halfDeparture?.units.armor +
+      halfDeparture?.units.airDrone,
+    6250
+  );
+
+  const fullMoveRes = executeArmyMoveDomain({
+    fromId: '792',
+    toId: '300',
+    playerNationId: '792',
+    nations,
+    territories,
+    relations: {},
+    wars: [],
+    movements: [],
+    newsEvents: [],
+    moveRatio: 1,
+    tick: 1,
+    gameMode: 'EMPIRES_1440',
+    speed: 1,
+    forceDeclareWar: true,
+  });
+  assert.equal(fullMoveRes.movements?.[0].troops, 11500);
+  assert.equal(fullMoveRes.territories?.['792'].garrison, 500);
 });
 
 test('formEmpireDomain prevents instant day-1 Turan formation until province, tech, city, and gold requirements are met', () => {
@@ -196,6 +248,40 @@ import {
   resolvePeaceDealDomain,
   resolveTacticalBattleOutcomeDomain,
 } from './diplomacyAndWarActions';
+
+test('military access grants the displayed relationship bonus once and cancellation is free', () => {
+  const nations: Record<string, Nation> = {
+    A: { id: 'A', name: 'Oyuncu', diplomacyPoints: 100 } as Nation,
+    B: { id: 'B', name: 'Komşu', diplomacyPoints: 100 } as Nation,
+  };
+  const relation: DiplomaticRelation = {
+    nationA: 'A', nationB: 'B', score: 10, isAllied: false,
+    hasNonAggression: false, hasTradeAgreement: false, hasEmbargo: false,
+    hasMilitaryAccess: false, truceUntilTick: 0,
+  };
+  const act = (
+    currentNations: Record<string, Nation>,
+    currentRelation: DiplomaticRelation
+  ) => executeDiplomaticActionDomain({
+    targetNationId: 'B', action: 'MILITARY_ACCESS', playerNationId: 'A',
+    totalPlayerGarrison: 0, tick: 1, gameMode: 'EMPIRES_1440',
+    nations: currentNations, territories: {}, relations: { A_B: currentRelation },
+    wars: [], movements: [], newsEvents: [],
+  });
+
+  const granted = act(nations, relation);
+  assert.equal(granted.relations?.A_B?.hasMilitaryAccess, true);
+  assert.equal(granted.relations?.A_B?.score, 18);
+  assert.equal(granted.nations?.A?.diplomacyPoints, 90);
+
+  const cancelled = act(
+    granted.nations ?? nations,
+    granted.relations?.A_B ?? relation
+  );
+  assert.equal(cancelled.relations?.A_B?.hasMilitaryAccess, false);
+  assert.equal(cancelled.relations?.A_B?.score, 18);
+  assert.equal(cancelled.nations?.A?.diplomacyPoints, 90);
+});
 
 test('declaring war on a neighboring nation immediately triggers enemy AI mobilization and counter-attack', () => {
   const nations: Record<string, Nation> = {
@@ -336,7 +422,10 @@ test('diplomacy blocks war above the AOH3 relation threshold and spends points o
 
 test('resolvePeaceDealDomain blocks Day-1 zero-warscore peace exploits and allows peace once warscore is earned', () => {
   const nations: Record<string, Nation> = {
-    '792': { id: '792', name: 'Osmanlı', treasury: 1000 } as Nation,
+    '792': {
+      id: '792', name: 'Osmanlı', treasury: 1000, aggressiveExpansion: 10,
+      unlockedTechs: ['adm_2'],
+    } as unknown as Nation,
     '300': { id: '300', name: 'Bizans', treasury: 800 } as Nation,
   };
   const territories: Record<string, Territory> = {
@@ -859,6 +948,7 @@ test('timed technology research, construction queue, and gradual assimilation ad
       budget: { military: 40, economy: 30, research: 25, welfare: 5 },
       aggressiveExpansion: 0,
       unlockedTechs: [],
+      researchProgressByTech: { eco_1: 7.5 },
       enactedReforms: [],
       recruitedGeneralIds: [],
       activeGeneralId: null,
@@ -979,6 +1069,8 @@ test('timed technology research, construction queue, and gradual assimilation ad
   // Verification 1: Research completed and unlocked!
   assert.equal(updatedNation.activeResearch, null);
   assert.ok(updatedNation.unlockedTechs.includes('mil_1'), 'mil_1 tech should be unlocked');
+  assert.equal(updatedNation.researchProgressByTech?.mil_1, undefined);
+  assert.equal(updatedNation.researchProgressByTech?.eco_1, 7.5);
 
   // Verification 2: Barracks construction completed and level incremented!
   assert.equal(updatedEdirne.buildings.barracks, 1);
@@ -1194,9 +1286,1011 @@ test('resource specializations and trade hub relief affect national economy', ()
     [],
     []
   );
+  const freeTradeNation = {
+    ...nation,
+    enactedReforms: ['ref_free_trade_zones'],
+  } as Nation;
+  const freeTrade = calculateNationEconomy(
+    freeTradeNation,
+    { T1: { ...baseTerritory, resource: 'PETROL' } },
+    { TEST: freeTradeNation },
+    {},
+    [],
+    []
+  );
 
   assert.ok(baseline.productionIncome > 0);
   assert.ok(grain.dailyManpower > baseline.dailyManpower);
   assert.ok(finance.taxIncome > baseline.taxIncome);
   assert.ok(finance.inflationRelief > 0);
+  assert.ok(freeTrade.taxIncome > baseline.taxIncome);
+  assert.ok(freeTrade.tradeIncome > baseline.tradeIncome);
+});
+
+test('embargo direction targets only the other nation and maps legacy flags to nationA', () => {
+  const relation: DiplomaticRelation = {
+    nationA: 'A',
+    nationB: 'B',
+    score: 0,
+    isAllied: false,
+    hasNonAggression: false,
+    hasTradeAgreement: false,
+    hasEmbargo: true,
+    embargoingNationIds: ['A'],
+    hasMilitaryAccess: false,
+    truceUntilTick: 0,
+  };
+  assert.equal(isNationEmbargoed(relation, 'A'), false);
+  assert.equal(isNationEmbargoed(relation, 'B'), true);
+
+  const legacyRelation = { ...relation };
+  delete legacyRelation.embargoingNationIds;
+  assert.equal(isNationEmbargoed(legacyRelation, 'A'), false);
+  assert.equal(isNationEmbargoed(legacyRelation, 'B'), true);
+});
+
+test('embargo action lets both nations act independently and lift only their own embargo', () => {
+  const nations: Record<string, Nation> = {
+    A: { id: 'A', name: 'A', diplomacyPoints: 100 } as Nation,
+    B: { id: 'B', name: 'B', diplomacyPoints: 100 } as Nation,
+  };
+  const relations: Record<string, DiplomaticRelation> = {
+    A_B: {
+      nationA: 'A',
+      nationB: 'B',
+      score: 0,
+      isAllied: false,
+      hasNonAggression: false,
+      hasTradeAgreement: false,
+      hasEmbargo: false,
+      embargoingNationIds: [],
+      hasMilitaryAccess: false,
+      truceUntilTick: 0,
+    },
+  };
+  const act = (
+    playerNationId: string,
+    targetNationId: string,
+    currentNations: Record<string, Nation>,
+    currentRelations: Record<string, DiplomaticRelation>
+  ) =>
+    executeDiplomaticActionDomain({
+      targetNationId,
+      action: 'EMBARGO',
+      playerNationId,
+      totalPlayerGarrison: 0,
+      tick: 1,
+      gameMode: 'EMPIRES_1440',
+      nations: currentNations,
+      territories: {},
+      relations: currentRelations,
+      wars: [],
+      movements: [],
+      newsEvents: [],
+    });
+
+  const fromA = act('A', 'B', nations, relations);
+  assert.deepEqual(fromA.relations?.A_B?.embargoingNationIds, ['A']);
+  assert.equal(fromA.nations?.A?.diplomacyPoints, 85);
+
+  const fromB = act(
+    'B',
+    'A',
+    fromA.nations ?? nations,
+    fromA.relations ?? relations
+  );
+  assert.deepEqual(fromB.relations?.A_B?.embargoingNationIds?.slice().sort(), [
+    'A',
+    'B',
+  ]);
+  assert.equal(fromB.nations?.B?.diplomacyPoints, 85);
+
+  const removeA = act(
+    'A',
+    'B',
+    fromB.nations ?? nations,
+    fromB.relations ?? relations
+  );
+  assert.deepEqual(removeA.relations?.A_B?.embargoingNationIds, ['B']);
+  assert.equal(removeA.relations?.A_B?.hasEmbargo, true);
+  assert.equal(removeA.nations?.A?.diplomacyPoints, 85);
+});
+
+test('only an embargo target loses trade income; legacy direction stays one-sided', () => {
+  const makeNation = (id: string): Nation =>
+    ({
+      id,
+      name: id,
+      ideology: 'MONARCHY',
+      treasury: 1000,
+      manpower: 10000,
+      stability: 70,
+      inflation: 0,
+      researchPoints: 0,
+      taxRate: 25,
+      budget: { military: 35, economy: 25, research: 15, welfare: 25 },
+      unlockedTechs: [],
+      enactedReforms: [],
+      recruitedGeneralIds: [],
+      activeGeneralId: null,
+      isEliminated: false,
+    }) as unknown as Nation;
+  const nationA = makeNation('A');
+  const nationB = makeNation('B');
+  const nations = { A: nationA, B: nationB };
+  const makeTerritory = (ownerId: string): Territory =>
+    ({
+      id: `${ownerId}_T`,
+      name: `${ownerId} Province`,
+      ownerId,
+      coreOwnerId: ownerId,
+      population: 1000,
+      baseGdp: 100,
+      resource: 'PETROL',
+      buildings: {
+        factory: 0,
+        barracks: 0,
+        fortress: 0,
+        university: 0,
+        tradeHub: 0,
+        supplyDepot: 0,
+      },
+      garrison: 0,
+      units: { infantry: 0, armor: 0, airDrone: 0 },
+      unrest: 0,
+      isOccupied: false,
+      centroid: [0, 0],
+      neighbors: [],
+    }) as unknown as Territory;
+  const territories = {
+    A_T: makeTerritory('A'),
+    B_T: makeTerritory('B'),
+  };
+  const directionalRelation: DiplomaticRelation = {
+    nationA: 'A',
+    nationB: 'B',
+    score: 0,
+    isAllied: false,
+    hasNonAggression: false,
+    hasTradeAgreement: false,
+    hasEmbargo: true,
+    embargoingNationIds: ['A'],
+    hasMilitaryAccess: false,
+    truceUntilTick: 0,
+  };
+  const economy = (
+    nation: Nation,
+    relationSet: Record<string, DiplomaticRelation>
+  ) =>
+    calculateNationEconomy(
+      nation,
+      territories,
+      nations,
+      relationSet,
+      [],
+      []
+    );
+
+  const sourceBaseline = economy(nationA, {});
+  const sourceEmbargoed = economy(nationA, { A_B: directionalRelation });
+  const targetBaseline = economy(nationB, {});
+  const targetEmbargoed = economy(nationB, { A_B: directionalRelation });
+  assert.equal(sourceEmbargoed.tradeIncome, sourceBaseline.tradeIncome);
+  assert.ok(targetEmbargoed.tradeIncome < targetBaseline.tradeIncome);
+
+  const legacyRelation = { ...directionalRelation };
+  delete legacyRelation.embargoingNationIds;
+  assert.equal(economy(nationA, { A_B: legacyRelation }).tradeIncome, sourceBaseline.tradeIncome);
+  assert.ok(economy(nationB, { A_B: legacyRelation }).tradeIncome < targetBaseline.tradeIncome);
+});
+
+
+test('trade agreement clears the relation embargo list consistently with hasEmbargo', () => {
+  const nations: Record<string, Nation> = {
+    P: { id: 'P', name: 'Oyuncu', diplomacyPoints: 100 } as Nation,
+    T: { id: 'T', name: 'Hedef', diplomacyPoints: 100 } as Nation,
+  };
+  const relation: DiplomaticRelation = {
+    nationA: 'P',
+    nationB: 'T',
+    score: 20,
+    isAllied: false,
+    hasNonAggression: false,
+    hasTradeAgreement: false,
+    hasEmbargo: true,
+    embargoingNationIds: ['P', 'T'],
+    hasMilitaryAccess: false,
+    truceUntilTick: 0,
+  };
+  const patch = executeDiplomaticActionDomain({
+    targetNationId: 'T',
+    action: 'TRADE',
+    playerNationId: 'P',
+    totalPlayerGarrison: 0,
+    tick: 1,
+    gameMode: 'EMPIRES_1440',
+    nations,
+    territories: {},
+    relations: { P_T: relation },
+    wars: [],
+    movements: [],
+    newsEvents: [],
+  });
+
+  assert.equal(patch.relations?.P_T?.hasTradeAgreement, true);
+  assert.equal(patch.relations?.P_T?.hasEmbargo, false);
+  assert.deepEqual(patch.relations?.P_T?.embargoingNationIds, []);
+});
+
+test('only the embargo target loses an exposed trade-corridor share', () => {
+  const territories: Record<string, Territory> = {
+    '724_SEV': {
+      id: '724_SEV',
+      name: 'Seville',
+      ownerId: 'A',
+      baseGdp: 100,
+      buildings: { tradeHub: 0, fortress: 0, supplyDepot: 0 },
+    } as unknown as Territory,
+    '504': {
+      id: '504',
+      name: 'Morocco Strait',
+      ownerId: 'B',
+      baseGdp: 100,
+      buildings: { tradeHub: 0, fortress: 0, supplyDepot: 0 },
+    } as unknown as Territory,
+  };
+  const nations = {
+    A: { id: 'A', name: 'A' } as Nation,
+    B: { id: 'B', name: 'B' } as Nation,
+  };
+  const relationFrom = (nationId: string): DiplomaticRelation => ({
+    nationA: 'A',
+    nationB: 'B',
+    score: 0,
+    isAllied: false,
+    hasNonAggression: false,
+    hasTradeAgreement: false,
+    hasEmbargo: true,
+    embargoingNationIds: [nationId],
+    hasMilitaryAccess: false,
+    truceUntilTick: 0,
+  });
+  const routeFor = (embargoingNationId: string) =>
+    calculateNationTradeAndStraits({
+      nationId: 'A',
+      gameMode: 'STANDARD_2026',
+      territories,
+      nations,
+      relations: { A_B: relationFrom(embargoingNationId) },
+      wars: [],
+    });
+  const embargoByA = routeFor('A');
+  const embargoByB = routeFor('B');
+  const corridorByA = embargoByA.activeCorridors.find(
+    (corridor) => corridor.corridorId === 'corridor_western_med'
+  );
+  const corridorByB = embargoByB.activeCorridors.find(
+    (corridor) => corridor.corridorId === 'corridor_western_med'
+  );
+
+  assert.equal(corridorByA?.isBlockadedByEnemy, false);
+  assert.equal(corridorByB?.isBlockadedByEnemy, true);
+  assert.ok(embargoByB.blockadePenaltyLoss > 0);
+});
+
+test('hydrated legacy save keeps a symmetric embargo flag one-sided', () => {
+  const makeNation = (id: string): Nation =>
+    ({
+      id,
+      name: id,
+      treasury: 1000,
+      manpower: 10000,
+      stability: 70,
+      inflation: 0,
+      researchPoints: 0,
+      taxRate: 25,
+      unlockedTechs: [],
+      enactedReforms: [],
+      recruitedGeneralIds: [],
+      isEliminated: false,
+    }) as unknown as Nation;
+  const makeTerritory = (id: string, ownerId: string): Territory =>
+    ({
+      id,
+      name: id,
+      ownerId,
+      coreOwnerId: ownerId,
+      population: 1000,
+      baseGdp: 100,
+      garrison: 0,
+      unrest: 0,
+      buildings: {
+        factory: 0,
+        barracks: 0,
+        fortress: 0,
+        university: 0,
+        tradeHub: 0,
+        supplyDepot: 0,
+      },
+      units: { infantry: 0, armor: 0, airDrone: 0 },
+      centroid: [0, 0],
+      neighbors: [],
+    }) as unknown as Territory;
+  const nations = { A: makeNation('A'), B: makeNation('B') };
+  const territories = {
+    A_T: makeTerritory('A_T', 'A'),
+    B_T: makeTerritory('B_T', 'B'),
+  };
+  const legacyRelation = {
+    nationA: 'A',
+    nationB: 'B',
+    score: 0,
+    isAllied: false,
+    hasNonAggression: false,
+    hasTradeAgreement: false,
+    hasEmbargo: true,
+    hasMilitaryAccess: false,
+    truceUntilTick: 0,
+  } as DiplomaticRelation;
+  const savedPayload: SaveGamePayload = {
+    gameMode: 'STANDARD_2026',
+    playerNationId: 'A',
+    nations,
+    territories,
+    relations: { A_B: legacyRelation },
+    wars: [],
+    battles: [],
+    movements: [],
+    newsEvents: [],
+    tick: 0,
+  };
+
+  const hydrated = hydrateSavedPayload(savedPayload, nations, territories);
+  assert.equal(isNationEmbargoed(hydrated.relations.A_B, 'A'), false);
+  assert.equal(isNationEmbargoed(hydrated.relations.A_B, 'B'), true);
+});
+
+
+test('research progress survives switching, pausing, resuming, and legacy save hydration', () => {
+  const baseNation = {
+    id: '792',
+    name: 'Osmanlı',
+    flagCode: 'TUR',
+    color: '#c22222',
+    capitalTerritoryId: '792',
+    ideology: 'MONARCHY',
+    treasury: 1000,
+    manpower: 10000,
+    stability: 80,
+    inflation: 2,
+    researchPoints: 50,
+    taxRate: 25,
+    budget: { military: 40, economy: 30, research: 15, welfare: 15 },
+    aggressiveExpansion: 0,
+    unlockedTechs: [],
+    enactedReforms: [],
+    recruitedGeneralIds: [],
+    activeGeneralId: null,
+    isEliminated: false,
+    researchProgressByTech: {},
+  } as Nation;
+  const initialNations = { '792': baseNation };
+
+  const firstStart = startResearchDomain({
+    techId: 'eco_1',
+    nations: initialNations,
+    playerNationId: '792',
+    gameMode: 'EMPIRES_1440',
+    tick: 1,
+  });
+  const firstState = { ...initialNations, ...(firstStart.nations ?? {}) };
+  const partialState = {
+    ...firstState,
+    '792': {
+      ...firstState['792'],
+      activeResearch: {
+        ...firstState['792'].activeResearch!,
+        progress: 14.5,
+      },
+    },
+  };
+
+  const secondStart = startResearchDomain({
+    techId: 'mil_1',
+    nations: partialState,
+    playerNationId: '792',
+    gameMode: 'EMPIRES_1440',
+    tick: 2,
+  });
+  const secondState = { ...partialState, ...(secondStart.nations ?? {}) };
+  assert.equal(secondState['792'].activeResearch?.techId, 'mil_1');
+  assert.equal(secondState['792'].researchProgressByTech?.eco_1, 14.5);
+
+  const returnToFirst = startResearchDomain({
+    techId: 'eco_1',
+    nations: secondState,
+    playerNationId: '792',
+    gameMode: 'EMPIRES_1440',
+    tick: 3,
+  });
+  const resumedState = { ...secondState, ...(returnToFirst.nations ?? {}) };
+  assert.equal(resumedState['792'].activeResearch?.techId, 'eco_1');
+  assert.equal(resumedState['792'].activeResearch?.progress, 14.5);
+
+  const pausePatch = cancelResearchDomain({
+    nations: resumedState,
+    playerNationId: '792',
+  });
+  const pausedState = { ...resumedState, ...(pausePatch.nations ?? {}) };
+  assert.equal(pausedState['792'].activeResearch, null);
+  assert.equal(pausedState['792'].researchProgressByTech?.eco_1, 14.5);
+
+  const restartPatch = startResearchDomain({
+    techId: 'eco_1',
+    nations: pausedState,
+    playerNationId: '792',
+    gameMode: 'EMPIRES_1440',
+    tick: 4,
+  });
+  const restartState = { ...pausedState, ...(restartPatch.nations ?? {}) };
+  assert.equal(restartState['792'].activeResearch?.progress, 14.5);
+
+  const legacyNation = { ...restartState['792'] };
+  delete legacyNation.researchProgressByTech;
+  const legacyBaseline = { ...baseNation };
+  delete legacyBaseline.researchProgressByTech;
+  const hydrated = hydrateSavedPayload(
+    {
+      gameMode: 'EMPIRES_1440',
+      playerNationId: '792',
+      nations: { '792': legacyNation },
+      territories: {},
+      relations: {},
+      wars: [],
+      battles: [],
+      movements: [],
+      newsEvents: [],
+      tick: 4,
+    },
+    { '792': legacyBaseline },
+    {}
+  );
+  assert.equal(hydrated.nations['792'].activeResearch?.progress, 14.5);
+  assert.equal(hydrated.nations['792'].researchProgressByTech?.eco_1, 14.5);
+});
+
+
+test('siege bombardments cannot increase a small garrison and keep wall/force text truthful', () => {
+  const territory = {
+    id: 'fort',
+    name: 'Kale',
+    ownerId: 'B',
+    coreOwnerId: 'B',
+    population: 100,
+    baseGdp: 50,
+    resource: 'IRON',
+    buildings: { factory: 0, barracks: 0, fortress: 1, university: 0, tradeHub: 0, supplyDepot: 0 },
+    garrison: 300,
+    units: { infantry: 240, armor: 50, airDrone: 10 },
+    unrest: 0,
+    isOccupied: false,
+    centroid: [0, 0],
+    neighbors: ['home'],
+    castleWallHp: 20,
+  } as unknown as Territory;
+  const home = {
+    ...territory,
+    id: 'home',
+    name: 'Yurt',
+    ownerId: 'A',
+    coreOwnerId: 'A',
+    neighbors: ['fort'],
+  } as Territory;
+  const territories = { fort: territory, home };
+  const nations = {
+    A: { id: 'A', name: 'Oyuncu', treasury: 1000, clanInfluence: 100 },
+  } as unknown as Record<string, Nation>;
+
+  const artillery = siegeBombardmentDomain({
+    territoryId: 'fort',
+    method: 'ARTILLERY',
+    territories,
+    nations,
+    playerNationId: 'A',
+    gameMode: 'EMPIRES_1440',
+  });
+  assert.equal(artillery.territories?.fort.garrison, 270);
+  assert.equal(
+    artillery.territories!.fort.units.infantry +
+      artillery.territories!.fort.units.armor +
+      artillery.territories!.fort.units.airDrone,
+    270
+  );
+  assert.equal(artillery.territories?.fort.castleWallHp, 0);
+  assert.match(artillery.toastMessage || '', /300 → 270 asker/);
+
+  const raid = siegeBombardmentDomain({
+    territoryId: 'fort',
+    method: 'DRONE_RAID',
+    territories,
+    nations,
+    playerNationId: 'A',
+    gameMode: 'EMPIRES_1440',
+  });
+  assert.equal(raid.territories?.fort.garrison, 246);
+  assert.equal(
+    raid.territories!.fort.units.infantry +
+      raid.territories!.fort.units.armor +
+      raid.territories!.fort.units.airDrone,
+    246
+  );
+  assert.match(raid.toastMessage || '', /300 → 246 asker/);
+});
+
+test('tactical bombardment respects the 200-troop floor and Turan bonus is one-use', () => {
+  const original = useGameStore.getState();
+  const target = {
+    id: 'target', name: 'Hedef', ownerId: 'B', coreOwnerId: 'B', isCapital: false,
+    population: 100, baseGdp: 50, resource: 'IRON',
+    buildings: { factory: 0, barracks: 0, fortress: 0, university: 0, tradeHub: 0, supplyDepot: 0 },
+    garrison: 1000, units: { infantry: 800, armor: 200, airDrone: 0 },
+    unrest: 0, isOccupied: false, centroid: [0, 0], neighbors: ['home'],
+  } as unknown as Territory;
+  const home = {
+    ...target, id: 'home', name: 'Yurt', ownerId: 'A', coreOwnerId: 'A',
+    garrison: 1000, units: { infantry: 1000, armor: 0, airDrone: 0 }, neighbors: ['target'],
+  } as Territory;
+  const battle: ActiveBattle = {
+    id: 'battle', territoryId: 'target', fromTerritoryId: 'home',
+    attackerId: 'A', defenderId: 'B', attackerTroops: 1000, attackerInitialTroops: 1000,
+    attackerUnits: { infantry: 800, armor: 200, airDrone: 0 },
+    defenderTroops: 1000, defenderInitialTroops: 1000,
+    defenderUnits: { infantry: 800, armor: 200, airDrone: 0 }, round: 1,
+  };
+  const nations = {
+    A: { id: 'A', name: 'Oyuncu', treasury: 1000, capitalTerritoryId: 'home' },
+    B: { id: 'B', name: 'Rakip', treasury: 1000, capitalTerritoryId: 'target' },
+  } as unknown as Record<string, Nation>;
+  try {
+    useGameStore.setState({
+      ...original, playerNationId: 'A', battles: [battle], territories: { target, home },
+      nations, wars: [],
+    }, true);
+
+    useGameStore.getState().applyTacticalOrder('target', 'BOMBARD');
+    let current = useGameStore.getState().battles[0];
+    assert.equal(current.defenderTroops, 850);
+    assert.equal(current.defenderUnits.infantry + current.defenderUnits.armor + current.defenderUnits.airDrone, 850);
+
+    useGameStore.setState({ ...useGameStore.getState(), battles: [{
+      ...battle, defenderTroops: 199, defenderInitialTroops: 199,
+      defenderUnits: { infantry: 199, armor: 0, airDrone: 0 },
+    }] }, true);
+    useGameStore.getState().applyTacticalOrder('target', 'BOMBARD');
+    current = useGameStore.getState().battles[0];
+    assert.equal(current.defenderTroops, 199);
+    assert.equal(current.defenderUnits.infantry, 199);
+    assert.match(useGameStore.getState().toastMessage || '', /200 asker tabanında/);
+
+    useGameStore.setState({ ...useGameStore.getState(), battles: [battle] }, true);
+    useGameStore.getState().applyTacticalOrder('target', 'TURAN');
+    current = useGameStore.getState().battles[0];
+    assert.equal(current.attackerTuranPowerBonus, 18);
+    assert.equal(current.attackerTuranUsed, true);
+    useGameStore.getState().applyTacticalOrder('target', 'TURAN');
+    current = useGameStore.getState().battles[0];
+    assert.equal(current.attackerTuranPowerBonus, 18);
+    assert.match(useGameStore.getState().toastMessage || '', /zaten kullanıldı/);
+  } finally {
+    useGameStore.setState(original, true);
+  }
+});
+
+test('manual retreat preserves troops, units, ownership, capitals and war score for either side', () => {
+  const original = useGameStore.getState();
+  const makeTerritory = (
+    id: string, ownerId: string, neighbors: string[], garrison: number,
+    units: { infantry: number; armor: number; airDrone: number }, isCapital = false
+  ) => ({
+    id, name: id, ownerId, coreOwnerId: ownerId, isCapital, population: 100,
+    baseGdp: 50, resource: 'IRON',
+    buildings: { factory: 0, barracks: 0, fortress: 0, university: 0, tradeHub: 0, supplyDepot: 0 },
+    garrison, units, unrest: 0, isOccupied: false, centroid: [0, 0], neighbors,
+  } as unknown as Territory);
+  const battle: ActiveBattle = {
+    id: 'battle', territoryId: 'target', fromTerritoryId: 'origin',
+    attackerId: 'A', defenderId: 'B', attackerTroops: 600, attackerInitialTroops: 1000,
+    attackerUnits: { infantry: 300, armor: 200, airDrone: 100 },
+    defenderTroops: 800, defenderInitialTroops: 1000,
+    defenderUnits: { infantry: 600, armor: 200, airDrone: 0 }, round: 2,
+  };
+  const war: ActiveWar = {
+    id: 'war', name: 'Test Savaşı', attackerId: 'A', defenderId: 'B',
+    attackers: ['A'], defenders: ['B'], startedTick: 0, attackerWarScore: 0,
+    casualtiesAttacker: 0, casualtiesDefender: 0,
+  };
+  const nations = {
+    A: { id: 'A', name: 'A', treasury: 1000, capitalTerritoryId: 'a-home' },
+    B: { id: 'B', name: 'B', treasury: 1000, capitalTerritoryId: 'target' },
+  } as unknown as Record<string, Nation>;
+  try {
+    const target = makeTerritory('target', 'B', ['origin', 'a-home'], 800, battle.defenderUnits, true);
+    const origin = makeTerritory('origin', 'B', ['target'], 3000, { infantry: 3000, armor: 0, airDrone: 0 });
+    const aHome = makeTerritory('a-home', 'A', ['target'], 100, { infantry: 100, armor: 0, airDrone: 0 });
+    useGameStore.setState({
+      ...original, playerNationId: 'A', battles: [battle], territories: { target, origin, 'a-home': aHome },
+      nations, wars: [war], activeBattleOverviewTerritoryId: 'target',
+    }, true);
+    useGameStore.getState().applyTacticalOrder('target', 'RETREAT');
+    let state = useGameStore.getState();
+    assert.equal(state.battles.length, 0);
+    assert.equal(state.territories.origin.garrison, 3000);
+    assert.equal(state.territories['a-home'].garrison, 700);
+    assert.deepEqual(state.territories['a-home'].units, { infantry: 400, armor: 200, airDrone: 100 });
+    assert.equal(state.territories.target.ownerId, 'B');
+    assert.equal(state.wars[0].attackerWarScore, -28);
+
+    const defenderHome = makeTerritory('b-home', 'B', ['target'], 100, { infantry: 100, armor: 0, airDrone: 0 });
+    const defenderTarget = makeTerritory('target', 'B', ['b-home'], 800, battle.defenderUnits, true);
+    const attackerOrigin = makeTerritory('origin', 'A', ['target'], 3000, { infantry: 3000, armor: 0, airDrone: 0 });
+    useGameStore.setState({
+      ...original, playerNationId: 'B', battles: [battle],
+      territories: { target: defenderTarget, 'b-home': defenderHome, origin: attackerOrigin },
+      nations, wars: [war], activeBattleOverviewTerritoryId: 'target',
+    }, true);
+    useGameStore.getState().applyTacticalOrder('target', 'RETREAT');
+    state = useGameStore.getState();
+    assert.equal(state.battles.length, 0);
+    assert.equal(state.territories['b-home'].garrison, 900);
+    assert.deepEqual(state.territories['b-home'].units, { infantry: 700, armor: 200, airDrone: 0 });
+    assert.equal(state.territories.target.ownerId, 'A');
+    assert.equal(state.territories.target.garrison, 600);
+    assert.equal(state.territories.target.isCapital, false);
+    assert.equal(state.territories['b-home'].isCapital, true);
+    assert.equal(state.nations.B.capitalTerritoryId, 'b-home');
+    assert.equal(state.wars[0].attackerWarScore, 28);
+  } finally {
+    useGameStore.setState(original, true);
+  }
+});
+
+test('tactical siege bombardment updates both wall-integrity fields', () => {
+  const original = useGameStore.getState();
+  const territory = {
+    id: 'target', name: 'Hisar', ownerId: 'B', coreOwnerId: 'B', population: 100,
+    baseGdp: 50, resource: 'IRON',
+    buildings: { factory: 0, barracks: 0, fortress: 1, university: 0, tradeHub: 0, supplyDepot: 0 },
+    garrison: 100, units: { infantry: 100, armor: 0, airDrone: 0 }, unrest: 0,
+    isOccupied: false, centroid: [0, 0], neighbors: ['home'], castleWallHp: 50,
+    siege: { territoryId: 'target', attackerId: 'A', defenderId: 'B', attackerTroops: 1000,
+      attackerUnits: { infantry: 1000, armor: 0, airDrone: 0 }, progress: 10, wallIntegrity: 50, startedTick: 1 },
+  } as unknown as Territory;
+  try {
+    useGameStore.setState({
+      ...original, playerNationId: 'A', battles: [], territories: { target: territory },
+    }, true);
+    useGameStore.getState().applyTacticalOrder('target', 'BOMBARD');
+    const updated = useGameStore.getState().territories.target;
+    assert.equal(updated.castleWallHp, 30);
+    assert.equal(updated.siege?.wallIntegrity, 30);
+  } finally {
+    useGameStore.setState(original, true);
+  }
+});
+
+
+test('Turan combat bonus changes casualties for either side and is consumed after one round', () => {
+  const nations = {
+    A: {
+      id: 'A', name: 'Oyuncu', capitalTerritoryId: 'home', treasury: 1000,
+      manpower: 50000, stability: 80, inflation: 2, researchPoints: 0, taxRate: 25,
+      budget: { military: 40, economy: 30, research: 15, welfare: 15 },
+      aggressiveExpansion: 0, unlockedTechs: [], enactedReforms: [],
+      recruitedGeneralIds: [], activeGeneralId: null, isEliminated: false,
+    },
+    B: {
+      id: 'B', name: 'Rakip', capitalTerritoryId: 'target', treasury: 1000,
+      manpower: 50000, stability: 80, inflation: 2, researchPoints: 0, taxRate: 25,
+      budget: { military: 40, economy: 30, research: 15, welfare: 15 },
+      aggressiveExpansion: 0, unlockedTechs: [], enactedReforms: [],
+      recruitedGeneralIds: [], activeGeneralId: null, isEliminated: false,
+    },
+  } as unknown as Record<string, Nation>;
+  const territories = {
+    home: {
+      id: 'home', name: 'Yurt', ownerId: 'A', coreOwnerId: 'A', garrison: 100000,
+      units: { infantry: 80000, armor: 20000, airDrone: 0 },
+      buildings: { factory: 0, barracks: 0, fortress: 0, university: 0, tradeHub: 0, supplyDepot: 0 },
+      neighbors: ['target'], centroid: [0, 0], population: 100, baseGdp: 100,
+      resource: 'IRON', unrest: 0, isOccupied: false,
+    },
+    target: {
+      id: 'target', name: 'Hedef', ownerId: 'B', coreOwnerId: 'B', garrison: 100000,
+      units: { infantry: 80000, armor: 20000, airDrone: 0 },
+      buildings: { factory: 0, barracks: 0, fortress: 0, university: 0, tradeHub: 0, supplyDepot: 0 },
+      neighbors: ['home'], centroid: [0, 0], population: 100, baseGdp: 100,
+      resource: 'IRON', unrest: 0, isOccupied: false,
+    },
+  } as unknown as Record<string, Territory>;
+  const battle: ActiveBattle = {
+    id: 'battle', territoryId: 'target', fromTerritoryId: 'home', attackerId: 'A',
+    defenderId: 'B', attackerTroops: 100000, attackerInitialTroops: 100000,
+    attackerUnits: { infantry: 80000, armor: 20000, airDrone: 0 },
+    defenderTroops: 100000, defenderInitialTroops: 100000,
+    defenderUnits: { infantry: 80000, armor: 20000, airDrone: 0 },
+    attackerMorale: 100, defenderMorale: 100, round: 0,
+  };
+  const runOneRound = (activeBattle: ActiveBattle) => computeGameTick({
+    tick: 1, hour: 8, hoursStep: 2, speed: 1, gameMode: 'EMPIRES_1440',
+    playerNationId: 'A', nations, territories, relations: {}, wars: [],
+    battles: [activeBattle], movements: [], newsEvents: [],
+    settings: { ...DEFAULT_GAME_SETTINGS, crisisFrequencyDays: 0 },
+  }).battles[0];
+
+  const baseline = runOneRound(battle);
+  const attackerTuran = runOneRound({
+    ...battle, attackerTuranPowerBonus: 18, attackerTuranUsed: true,
+  });
+  assert.ok(attackerTuran.defenderTroops < baseline.defenderTroops);
+  assert.ok(attackerTuran.attackerTroops > baseline.attackerTroops);
+  assert.equal(attackerTuran.attackerTuranPowerBonus, 0);
+  assert.equal(attackerTuran.attackerTuranUsed, true);
+
+  const defenderTuran = runOneRound({
+    ...battle, defenderTuranPowerBonus: 18, defenderTuranUsed: true,
+  });
+  assert.ok(defenderTuran.attackerTroops < baseline.attackerTroops);
+  assert.ok(defenderTuran.defenderTroops > baseline.defenderTroops);
+  assert.equal(defenderTuran.defenderTuranPowerBonus, 0);
+  assert.equal(defenderTuran.defenderTuranUsed, true);
+});
+
+
+test('vassal tribute is an explicit expense that reconciles to the displayed net balance', () => {
+  const vassal: Nation = {
+    id: 'V', name: 'Vasal', vassalOf: 'L', taxRate: 25, inflation: 12,
+    budget: { military: 35, economy: 30, research: 15, welfare: 20 },
+    unlockedTechs: [], enactedReforms: [],
+  } as unknown as Nation;
+  const territory = {
+    id: 'V1', name: 'Eyalet', ownerId: 'V', coreOwnerId: 'V', population: 1000,
+    baseGdp: 100, resource: 'TAHIL',
+    buildings: { factory: 1, barracks: 1, fortress: 0, university: 0, tradeHub: 1, supplyDepot: 0 },
+    garrison: 1000, units: { infantry: 1000, armor: 0, airDrone: 0 },
+    unrest: 0, isOccupied: false, centroid: [0, 0], neighbors: [],
+  } as unknown as Territory;
+  const economy = calculateNationEconomy(
+    vassal,
+    { V1: territory },
+    {
+      V: vassal,
+      L: { id: 'L', name: 'Üst Devlet', isEliminated: false } as Nation,
+      C: { id: 'C', name: 'Alt Vasal', vassalOf: 'V', isEliminated: false } as Nation,
+    },
+    {},
+    [],
+    []
+  );
+  assert.equal(economy.vassalTributeOut, Math.round(economy.taxIncome * 0.25));
+  assert.equal(economy.vassalIncome, 55);
+  assert.equal(
+    economy.netDailyGold,
+    economy.taxIncome + economy.productionIncome + economy.tradeIncome +
+      economy.vassalIncome - economy.vassalTributeOut -
+      economy.militaryUpkeep - economy.inflationPenalty
+  );
+});
+
+test('blockade loss never exceeds a corridor gross share or creates net income', () => {
+  assert.deepEqual(calculateBlockadedCorridorIncome(0, 0.42), {
+    dailyIncome: 0, blockadePenaltyLoss: 0,
+  });
+  assert.deepEqual(calculateBlockadedCorridorIncome(2, 0.42), {
+    dailyIncome: 1, blockadePenaltyLoss: 1,
+  });
+  assert.deepEqual(calculateBlockadedCorridorIncome(2, 2), {
+    dailyIncome: 0, blockadePenaltyLoss: 2,
+  });
+  for (const gross of [0, 1, 2, 3, 4, 10, 100]) {
+    const result = calculateBlockadedCorridorIncome(gross, 0.42);
+    assert.ok(result.dailyIncome <= gross);
+    assert.ok(result.blockadePenaltyLoss <= gross);
+    assert.equal(result.dailyIncome + result.blockadePenaltyLoss, gross);
+  }
+});
+
+
+test('war score is signed from the viewing nation side', () => {
+  const war: ActiveWar = {
+    id: 'perspective', name: 'Test Savaşı', attackerId: 'A', defenderId: 'B',
+    attackers: ['A', 'ALLY'], defenders: ['B', 'ALLY_2'], startedTick: 0,
+    attackerWarScore: 37, casualtiesAttacker: 0, casualtiesDefender: 0,
+  };
+  assert.equal(getWarScoreForNation(war, 'A'), 37);
+  assert.equal(getWarScoreForNation(war, 'ALLY'), 37);
+  assert.equal(getWarScoreForNation(war, 'B'), -37);
+  assert.equal(getWarScoreForNation(war, 'ALLY_2'), -37);
+  assert.equal(getWarScoreForNation(war, 'NEUTRAL'), null);
+});
+
+
+test('ADM_1 reduces positive non-core weekly unrest drift and leaves relief unchanged', () => {
+  const nation = (id: string, unlockedTechs: string[]) => ({
+    id,
+    name: id,
+    unlockedTechs,
+    taxRate: 30,
+    budget: { welfare: 20 },
+    isEliminated: false,
+  } as unknown as Nation);
+  const territory = (id: string, ownerId: string) => ({
+    id,
+    name: id,
+    ownerId,
+    coreOwnerId: 'ORIGINAL',
+    isOccupied: true,
+    garrison: 0,
+    unrest: 20,
+    buildings: { supplyDepot: 0 },
+  } as unknown as Territory);
+
+  const result = evaluateWeeklyUnrestAndRebellions(
+    { A: territory('A', 'A'), B: territory('B', 'B') },
+    { A: nation('A', []), B: nation('B', ['adm_1']) }
+  );
+  assert.equal(result.updatedTerritories.A.unrest, 24);
+  assert.equal(result.updatedTerritories.B.unrest, 23);
+  assert.equal(adjustOccupiedUnrestDrift({ unlockedTechs: ['adm_1'] } as Nation, 4.2), 2.94);
+  assert.equal(adjustOccupiedUnrestDrift({ unlockedTechs: ['adm_1'] } as Nation, -2), -2);
+});
+
+test('ADM_2 reduces positive aggressive-expansion gains without changing reductions', () => {
+  const nation = {
+    id: 'A',
+    name: 'A',
+    aggressiveExpansion: 20,
+    treasury: 100,
+    manpower: 100,
+    stability: 50,
+    inflation: 2,
+    researchPoints: 0,
+    diplomacyPoints: 0,
+    unlockedTechs: ['adm_2'],
+    enactedReforms: [],
+  } as unknown as Nation;
+  const result = resolveCrisisDomain({
+    option: {
+      id: 'ae-gain',
+      label: 'Karar',
+      effectSummary: 'AE artışı',
+      effects: { aeDelta: 20 },
+    },
+    nations: { A: nation },
+    territories: {},
+    playerNationId: 'A',
+    activeCrisis: null,
+    tick: 0,
+    gameMode: 'STANDARD_2026',
+    newsEvents: [],
+  });
+  assert.equal(result.nations?.A.aggressiveExpansion, 35);
+  assert.equal(adjustAggressiveExpansionGain(nation, 20), 15);
+  assert.equal(adjustAggressiveExpansionGain(nation, -10), -10);
+});
+
+
+test('ADM_2 reduces the aggressive-expansion gain after a successful conquest', () => {
+  const battle = {
+    battleId: 'adm2-victory',
+    territoryId: 'target',
+    territoryName: 'Hedef',
+    terrain: 'OVA',
+    castleWallHp: 100,
+    attackerNationId: 'A',
+    defenderNationId: 'B',
+    attackerTroops: 1000,
+    defenderTroops: 1000,
+    attackerMaxTroops: 1000,
+    defenderMaxTroops: 1000,
+    attackerMorale: 100,
+    defenderMorale: 0,
+    attackerUnits: { infantry: 1000, armor: 0, airDrone: 0 },
+    defenderUnits: { infantry: 1000, armor: 0, airDrone: 0 },
+    attackerCommanderId: null,
+    defenderCommanderId: null,
+    selectedPlayerTactic: 'BALANCED_LINE',
+    selectedAiTactic: 'BALANCED_LINE',
+    round: 5,
+    maxRounds: 5,
+    combatLog: [],
+    status: 'VICTORY',
+    outcome: {
+      winnerId: 'A',
+      loserId: 'B',
+      attackerSurvivingTroops: 1000,
+      defenderSurvivingTroops: 0,
+      attackerTotalLosses: 0,
+      defenderTotalLosses: 1000,
+      territoryConquered: true,
+      earnedResearch: 0,
+      earnedInfluence: 0,
+    },
+  } as unknown as Parameters<typeof resolveTacticalBattleOutcomeDomain>[0]['finalBattle'];
+  const nations: Record<string, Nation> = {
+    A: {
+      id: 'A', name: 'A', capitalTerritoryId: 'home', aggressiveExpansion: 10,
+      unlockedTechs: ['adm_2'], researchPoints: 0, clanInfluence: 120,
+    } as unknown as Nation,
+    B: { id: 'B', name: 'B', capitalTerritoryId: 'target' } as Nation,
+  };
+  const territories: Record<string, Territory> = {
+    home: { id: 'home', name: 'Yurt', ownerId: 'A', coreOwnerId: 'A', garrison: 1000 } as unknown as Territory,
+    target: { id: 'target', name: 'Hedef', ownerId: 'B', coreOwnerId: 'B', garrison: 1000, unrest: 0, neighbors: ['home'] } as unknown as Territory,
+  };
+
+  const result = resolveTacticalBattleOutcomeDomain({
+    finalBattle: battle,
+    playerNationId: 'A',
+    tick: 1,
+    gameMode: 'STANDARD_2026',
+    nations,
+    territories,
+    wars: [],
+    newsEvents: [],
+  });
+  assert.equal(result.nations?.A.aggressiveExpansion, 14.5);
+});
+
+test('imperial diplomacy reform reduces AE once and improves each living foreign relation once', () => {
+  const nations: Record<string, Nation> = {
+    A: {
+      id: 'A', name: 'A', treasury: 2000, researchPoints: 200,
+      aggressiveExpansion: 30, stability: 50, enactedReforms: [], isEliminated: false,
+    } as unknown as Nation,
+    B: { id: 'B', name: 'B', isEliminated: false } as Nation,
+    C: { id: 'C', name: 'C', isEliminated: false } as Nation,
+    D: { id: 'D', name: 'D', isEliminated: true } as Nation,
+  };
+  const relations = {
+    A_B: { nationA: 'A', nationB: 'B', score: 20 } as DiplomaticRelation,
+    A_C: { nationA: 'A', nationB: 'C', score: 95 } as DiplomaticRelation,
+  };
+
+  const result = enactReformDomain({
+    reformId: 'ref_imperial_diplomacy',
+    nations,
+    relations,
+    playerNationId: 'A',
+    gameMode: 'STANDARD_2026',
+  });
+  assert.equal(result.nations?.A.aggressiveExpansion, 15);
+  assert.equal(result.nations?.A.treasury, 900);
+  assert.equal(result.nations?.A.researchPoints, 85);
+  assert.equal(result.relations?.A_B.score, 35);
+  assert.equal(result.relations?.A_C.score, 100);
+  assert.equal(result.relations?.A_D, undefined);
+
+  const repeated = enactReformDomain({
+    reformId: 'ref_imperial_diplomacy',
+    nations: result.nations!,
+    relations: result.relations!,
+    playerNationId: 'A',
+    gameMode: 'STANDARD_2026',
+  });
+  assert.equal(repeated.nations, undefined);
+  assert.equal(repeated.relations, undefined);
+});
+
+test('map label density selects distinct mobile and desktop zoom thresholds', () => {
+  const compactMobile = getMapLabelThresholds('COMPACT', true);
+  const balancedMobile = getMapLabelThresholds('BALANCED', true);
+  const detailedMobile = getMapLabelThresholds('DETAILED', true);
+  const compactDesktop = getMapLabelThresholds('COMPACT', false);
+  const detailedDesktop = getMapLabelThresholds('DETAILED', false);
+
+  assert.ok(compactMobile.capitalNameMinZoom > balancedMobile.capitalNameMinZoom);
+  assert.ok(balancedMobile.capitalNameMinZoom > detailedMobile.capitalNameMinZoom);
+  assert.ok(compactMobile.provinceNameMinZoom > balancedMobile.provinceNameMinZoom);
+  assert.ok(balancedMobile.provinceNameMinZoom > detailedMobile.provinceNameMinZoom);
+  assert.ok(compactDesktop.provinceNameMinZoom > detailedDesktop.provinceNameMinZoom);
 });

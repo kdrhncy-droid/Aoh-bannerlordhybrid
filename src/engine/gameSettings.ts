@@ -4,6 +4,28 @@ export type CrisisFrequencyOption = 0 | 32 | 60 | 90;
 export type MapLabelDensityOption = 'COMPACT' | 'BALANCED' | 'DETAILED';
 export type UiScaleOption = 'COMPACT' | 'STANDARD' | 'LARGE';
 
+export const MAP_LABEL_DENSITY_OPTIONS: {
+  value: MapLabelDensityOption;
+  label: string;
+  desc: string;
+}[] = [
+  {
+    value: 'COMPACT',
+    label: 'Kompakt',
+    desc: 'Eyalet adları daha yakından görünür; haritada daha az metin kalır.',
+  },
+  {
+    value: 'BALANCED',
+    label: 'Dengeli',
+    desc: 'Ülke, başkent ve eyalet adları önerilen yakınlaştırmada görünür.',
+  },
+  {
+    value: 'DETAILED',
+    label: 'Ayrıntılı',
+    desc: 'Başkent ve eyalet adları daha uzaktan görünür.',
+  },
+];
+
 export interface GameSettings {
   autoSaveIntervalDays: AutoSaveIntervalOption;
   fogOfWarEnabled: boolean;

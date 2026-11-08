@@ -455,6 +455,8 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
       let defUnits = btl.defenderUnits;
       let attMorale = btl.attackerMorale ?? 100;
       let defMorale = btl.defenderMorale ?? 100;
+      let attTuranPowerBonus = btl.attackerTuranPowerBonus ?? 0;
+      let defTuranPowerBonus = btl.defenderTuranPowerBonus ?? 0;
       let round = btl.round;
       let wallHp = target.castleWallHp ?? 100;
 
@@ -501,14 +503,16 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
         const attPower =
           (attEngagedFront * 1.05 + attBacklineArtillery * 1.6) *
           (1 + getNationModernizedTier(attackerNation) * 0.12) *
-          (attMorale / 100);
+          (attMorale / 100) *
+          (1 + attTuranPowerBonus / 100);
 
         const defPower =
           (defEngagedFront * 1.05 + defBacklineArtillery * 1.6) *
           (1 + getNationModernizedTier(defenderNation) * 0.12) *
           terrainDefMult *
           fortBonus *
-          (defMorale / 100);
+          (defMorale / 100) *
+          (1 + defTuranPowerBonus / 100);
 
         const totalPower = Math.max(1, attPower + defPower);
         const attAdvantage = attPower / totalPower;
@@ -535,6 +539,8 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
         defUnits = scaleUnits(defUnits, nextDef / Math.max(1, defTroops));
         attTroops = nextAtt;
         defTroops = nextDef;
+        attTuranPowerBonus = 0;
+        defTuranPowerBonus = 0;
 
         const siegeHit = Math.round(
           6 + ((attUnits.airDrone || 0) > 0 ? 9 : 0)
@@ -577,6 +583,8 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
           defenderBackline: defUnits.airDrone,
           attackerMorale: Math.round(attMorale),
           defenderMorale: Math.round(defMorale),
+          attackerTuranPowerBonus: attTuranPowerBonus,
+          defenderTuranPowerBonus: defTuranPowerBonus,
           round,
         });
         continue;
@@ -921,18 +929,21 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
         ? { ...pNation.activeResearch }
         : null;
       let unlockedTechs = [...pNation.unlockedTechs];
+      const researchProgressByTech = { ...(pNation.researchProgressByTech ?? {}) };
 
       if (activeProj) {
         const dailyInvest = Math.max(0.4, econ.dailyResearch);
         activeProj.progress = Number(
           (activeProj.progress + dailyInvest).toFixed(2)
         );
+        researchProgressByTech[activeProj.techId] = activeProj.progress;
         if (activeProj.progress >= activeProj.totalCost) {
           const techDef = getTechTreeForMode(gameMode).find(
             (t) => t.id === activeProj!.techId
           );
           const techName = techDef?.name || activeProj.techId;
           unlockedTechs.push(activeProj.techId);
+          delete researchProgressByTech[activeProj.techId];
           activeProj = null;
           sounds.push('TREATY');
           toasts.push(
@@ -952,6 +963,7 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
           (pNation.researchPoints + econ.dailyResearch).toFixed(1)
         ),
         activeResearch: activeProj,
+        researchProgressByTech,
         unlockedTechs,
         inflation: Math.max(
           0.5,
@@ -1125,12 +1137,15 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
           ? { ...ai.activeResearch }
           : null;
         let aiUnlocked = [...(ai.unlockedTechs || [])];
+        const aiResearchProgressByTech = { ...(ai.researchProgressByTech ?? {}) };
         if (aiActiveProj) {
           aiActiveProj.progress = Number(
             (aiActiveProj.progress + weeklyAiResearch).toFixed(2)
           );
+          aiResearchProgressByTech[aiActiveProj.techId] = aiActiveProj.progress;
           if (aiActiveProj.progress >= aiActiveProj.totalCost) {
             aiUnlocked.push(aiActiveProj.techId);
+            delete aiResearchProgressByTech[aiActiveProj.techId];
             aiActiveProj = null;
           }
         } else {
@@ -1146,6 +1161,7 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
               totalCost: nextAiTech.cost,
               startedTick: nextTick,
             };
+            aiResearchProgressByTech[nextAiTech.id] = 0;
           }
         }
 
@@ -1157,6 +1173,7 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
             ((ai.researchPoints || 0) + weeklyAiResearch).toFixed(1)
           ),
           activeResearch: aiActiveProj,
+          researchProgressByTech: aiResearchProgressByTech,
           unlockedTechs: aiUnlocked,
           aggressiveExpansion: Math.max(0, ai.aggressiveExpansion - 0.35),
         });

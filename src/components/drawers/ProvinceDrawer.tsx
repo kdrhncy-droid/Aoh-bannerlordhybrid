@@ -614,12 +614,11 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
 
                       {/* Army Dispatch Controls */}
                       <div className="bg-slate-900 border border-slate-800 rounded-xl p-3 space-y-2.5">
-                        <div className="flex items-center justify-between text-xs">
+                        <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
                           <span className="text-slate-300 font-medium">
-                            Sefer Oranı:{' '}
-                            <strong>%{Math.round(moveRatio * 100)}</strong> (
+                            Gönderilecek: <strong>%{Math.round(moveRatio * 100)}</strong> (
                             {Math.round(
-                              selectedTerritory.garrison * moveRatio
+                              Math.max(0, selectedTerritory.garrison - 500) * moveRatio
                             ).toLocaleString('tr-TR')}{' '}
                             Asker)
                           </span>
@@ -639,6 +638,9 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                             ))}
                           </div>
                         </div>
+                        <p className="text-[10px] text-slate-500">
+                          Kaynak eyalette en az 500 asker savunmada kalır.
+                        </p>
 
                         <button
                           onClick={() => {
@@ -905,10 +907,10 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                                       Sv.{currentLvl}/{b.maxLevel}
                                     </span>
                                   </div>
-                                  <p className="hidden sm:block text-[10.5px] text-slate-400 mt-0.5 line-clamp-1">
+                                  <p className="text-[10.5px] leading-snug text-slate-400 mt-0.5">
                                     {b.description}
                                   </p>
-                                  <div className="text-[10.5px] text-emerald-400 mt-0.5 font-medium line-clamp-1">
+                                  <div className="text-[10.5px] leading-snug text-emerald-400 mt-0.5 font-medium">
                                     {b.effectSummary}
                                   </div>
 

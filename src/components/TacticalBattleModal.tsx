@@ -28,6 +28,7 @@ import {
 import { COMMANDERS } from '../data/world2026Data';
 import { TERRAIN_INFO } from '../engine/pashaAndFiefEngine';
 import { sound } from '../utils/soundEngine';
+import { useAccessibleDialog } from '../hooks/useAccessibleDialog';
 
 interface TacticalBattleModalProps {
   battleState: TacticalBattleState;
@@ -50,6 +51,9 @@ export function TacticalBattleModal({
   );
   const [isAnimatingRound, setIsAnimatingRound] = useState<boolean>(false);
   const logEndRef = useRef<HTMLDivElement>(null);
+  const dialogRef = useAccessibleDialog(true, () => undefined, {
+    closeOnEscape: false,
+  });
 
   const isPlayerAttacker = battle.attackerNationId === playerNationId;
   const attackerNation = nations[battle.attackerNationId];
@@ -121,7 +125,14 @@ export function TacticalBattleModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-slate-950/92 animate-fade-in">
-      <div className="relative w-full max-w-5xl max-h-[94vh] flex flex-col bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden text-slate-100">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="tactical-battle-title"
+        tabIndex={-1}
+        className="relative w-full max-w-5xl max-h-[94vh] flex flex-col bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden text-slate-100"
+      >
         {/* Top Header Bar */}
         <div className="flex items-center justify-between px-4 sm:px-6 py-3 bg-slate-950/90 border-b border-slate-800 shrink-0">
           <div className="flex items-center gap-3">
@@ -130,7 +141,7 @@ export function TacticalBattleModal({
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h2 className="font-display font-bold text-base sm:text-lg text-white">
+                <h2 id="tactical-battle-title" className="font-display font-bold text-base sm:text-lg text-white">
                   {battle.territoryName} Muharebesi
                 </h2>
                 <span

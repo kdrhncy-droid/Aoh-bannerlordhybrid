@@ -22,9 +22,11 @@ import {
   AI_AGGRESSIVENESS_OPTIONS,
   AUTO_SAVE_OPTIONS,
   GameSettings,
+  MAP_LABEL_DENSITY_OPTIONS,
   UI_SCALE_OPTIONS,
 } from '../engine/gameSettings';
 import { NationFlagCanvasBadge } from '../map/nationFlagRenderer';
+import { useAccessibleDialog } from '../hooks/useAccessibleDialog';
 import { sound } from '../utils/soundEngine';
 import { PWAInstallButton } from './PWAInstallButton';
 import { TerrainPanoramaSvg } from './illustrations/AoH3Illustrations';
@@ -115,9 +117,19 @@ export const TitleMenuModal: React.FC<TitleMenuModalProps> = ({
   const activeResource = activeTerritory
     ? RESOURCE_INFO[activeTerritory.resource]
     : null;
+  const dialogRef = useAccessibleDialog(
+    !mapPickerMode,
+    () => undefined,
+    { closeOnEscape: false }
+  );
 
   return (
     <div
+      ref={dialogRef}
+      role={mapPickerMode ? undefined : 'dialog'}
+      aria-modal={mapPickerMode ? undefined : 'true'}
+      aria-labelledby={mapPickerMode ? undefined : 'title-menu-heading'}
+      tabIndex={mapPickerMode ? undefined : -1}
       className={`fixed inset-0 z-40 flex flex-col text-slate-100 ${
         mapPickerMode
           ? 'pointer-events-none bg-transparent'
@@ -125,9 +137,9 @@ export const TitleMenuModal: React.FC<TitleMenuModalProps> = ({
       }`}
     >
       {/* Top Bar following 3-Zone Contract */}
-      <header className="pointer-events-auto flex items-center justify-between gap-8 px-3 sm:px-6 py-3 border-b border-amber-500/40 bg-[#070b14]/96 shadow-xl shrink-0">
+      <header className="title-menu-header pointer-events-auto flex items-center justify-between gap-8 px-3 sm:px-6 py-3 border-b border-amber-500/40 bg-[#070b14]/96 shadow-xl shrink-0">
         {/* Zone 1: Single text element wordmark */}
-        <span className="font-display text-sm sm:text-lg md:text-xl font-bold tracking-wider text-amber-400 whitespace-nowrap shrink-0">
+        <span className="title-menu-brand font-display text-sm sm:text-lg md:text-xl font-bold tracking-wider text-amber-400 whitespace-nowrap shrink-0">
           IMPERIUM: AGE OF HISTORY
         </span>
 
@@ -188,7 +200,7 @@ export const TitleMenuModal: React.FC<TitleMenuModalProps> = ({
         </nav>
 
         {/* Zone 3: 1 primary action */}
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="title-menu-primary flex items-center gap-2 shrink-0">
           <button
             data-start="true"
             onClick={() => {
@@ -204,8 +216,8 @@ export const TitleMenuModal: React.FC<TitleMenuModalProps> = ({
       </header>
 
       {/* Sub-Toolbar for Mobile / Quick Mode Switch (Below Header) */}
-      <div className="pointer-events-auto flex items-center justify-between gap-2 px-3 sm:px-6 py-2 bg-[#090e1a]/92 border-b border-slate-800/80 shrink-0">
-        <div className="flex items-center gap-1.5">
+      <div className="title-menu-subtoolbar pointer-events-auto flex items-center justify-between gap-2 px-3 sm:px-6 py-2 bg-[#090e1a]/92 border-b border-slate-800/80 shrink-0">
+        <div className="title-menu-subtoolbar-nav flex items-center gap-1.5">
           <button
             onClick={() => {
               sound.playClick();
@@ -237,7 +249,7 @@ export const TitleMenuModal: React.FC<TitleMenuModalProps> = ({
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="title-menu-subtoolbar-actions flex items-center gap-2">
           <PWAInstallButton compact />
           {hasSavedGame && (
             <button
@@ -343,7 +355,7 @@ export const TitleMenuModal: React.FC<TitleMenuModalProps> = ({
             {/* Scenario, AI Difficulty & AoH3 UI Scale Selector */}
             <section className="bg-[#090e1a]/95 border border-amber-500/40 rounded-2xl p-4 sm:p-5 flex flex-col gap-3.5 shadow-2xl">
               <div>
-                <h1 className="font-display text-lg sm:text-xl font-bold text-amber-100">
+                <h1 id="title-menu-heading" className="font-display text-lg sm:text-xl font-bold text-amber-100">
                   01. Senaryo ve AoH3 Arayüz Ayarları
                 </h1>
                 <p className="text-xs text-slate-400 mt-0.5">
@@ -428,6 +440,34 @@ export const TitleMenuModal: React.FC<TitleMenuModalProps> = ({
                       </button>
                     );
                   })}
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 space-y-1.5">
+                  <div className="text-[11px] font-semibold text-slate-300">Harita etiket yoğunluğu:</div>
+                  <div className="grid grid-cols-3 gap-1.5">
+                    {MAP_LABEL_DENSITY_OPTIONS.map((option) => {
+                      const active = settings.mapLabelDensity === option.value;
+                      return (
+                        <button
+                          key={option.value}
+                          type="button"
+                          aria-pressed={active}
+                          title={option.desc}
+                          onClick={() => {
+                            sound.playClick();
+                            onUpdateSettings({ mapLabelDensity: option.value });
+                          }}
+                          className={`min-h-[40px] px-1.5 py-1 rounded-lg border text-[10px] font-bold transition-colors ${
+                            active
+                              ? 'bg-amber-500 text-slate-950 border-amber-400'
+                              : 'bg-slate-950 border-slate-800 text-slate-300 hover:border-slate-700'
+                          }`}
+                        >
+                          {option.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
 
                 {/* AI Aggressiveness */}
