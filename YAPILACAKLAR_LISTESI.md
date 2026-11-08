@@ -281,3 +281,12 @@ Bu kayıtlar `WorldMapCanvas` render döngüsüne ve `App` simülasyon tick dön
 ### İlk örneklem kaydı — 2026-11-08
 
 İlk çalışan örneklemde kayıt şu şekilde oluştu: viewport `1280×1100`, yön `landscape`, DPR `1`; harita etkileşimi `zoom`, örnek süresi `5001 ms`, `284` kare, ölçülen FPS `56.8`, dropped-frame oranı `0.004`; simülasyon tick ortalaması `650 ms`, p95 `650.2 ms`, maksimum `650.2 ms` ve `6` örnek. Bu kayıt **60 FPS başarı kanıtı değildir**; tersine bu örneklemde 60 FPS’e ulaşılmadığını gösterir. Mobil `896×414` ekran görüntüsü de görsel düzen doğrulamasıdır, performans ölçümü olarak sayılmaz.
+
+
+## Ürün Yönü — AOH3 Seviyesi Önceliği (2026-11-08)
+
+Bu projenin birinci hedefi, kendi özgün fikirlerini eklemeden önce **Age of History 3 seviyesinde anlaşılır, yoğun ama düzenli bir büyük strateji deneyimi** oluşturmaktır. Bundan sonraki görsel değişikliklerde AOH3’ün harita, HUD, panel hiyerarşisi, renk kodları, bilgi yoğunluğu, buton gruplama ve dokunma davranışları referans alınacaktır. Görsel uygulamalarda önce AOH3 karşılığı kurulacak; Bannerlord hibrit unsurları ve özgün fikirler bu temel bozulmadan ikinci aşamada eklenecektir.
+
+Uygulama sırası şöyledir: (1) mevcut build’in AOH3 görsel/UX fark analizi, (2) harita ve HUD bilgi hiyerarşisinin AOH3 standardına çekilmesi, (3) eyalet/ekonomi/diplomasi/ordu panellerinin aynı görsel sistem altında birleştirilmesi, (4) mobil ve dar yatay dokunma akışlarının doğrulanması, (5) pan/zoom/simülasyon performans ölçümlerinin gerçek cihaz ve viewport kayıtlarıyla yapılması, (6) ancak bu temel kabul edildikten sonra özgün oyun fikirlerinin ayrı ve ölçülebilir dilimler hâlinde eklenmesi.
+
+AOH3 parity tamamlanmadan yeni dekoratif efekt, yeni hibrit mekanik veya rastgele görsel yön değişikliği eklenmeyecektir. Her görsel değişiklik için referans ekran, hedeflenen AOH3 davranışı ve mobil/dar yatay etkisi ayrıca belirtilmelidir. 60 FPS gibi performans iddiaları yalnızca ölçüm kaydıyla raporlanacaktır.
