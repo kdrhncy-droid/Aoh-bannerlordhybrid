@@ -63,6 +63,43 @@
   background: rgba(245, 158, 11, 0.6);
 }
 
+/* AoH3-style desktop system rail; mobile keeps the touch-friendly bottom bar. */
+@media (min-width: 901px) and (min-height: 541px) {
+  .hud-bottom-nav {
+    position: absolute !important;
+    left: 0.65rem;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 35;
+    width: 3.35rem;
+    height: auto;
+    padding: 0.35rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    border: 1px solid rgba(71, 85, 105, 0.8);
+    border-radius: 1rem;
+    background: rgba(2, 6, 23, 0.94);
+    box-shadow: 0 14px 32px rgba(0, 0, 0, 0.35);
+  }
+
+  .hud-bottom-nav-btn {
+    min-height: 2.8rem;
+    width: 100%;
+    gap: 0.2rem;
+    padding: 0.3rem 0.15rem;
+    border-radius: 0.7rem;
+  }
+
+  .hud-bottom-nav-btn span {
+    margin-top: 0;
+    max-width: 100%;
+    font-size: 0.55rem;
+    line-height: 0.75rem;
+    white-space: normal;
+  }
+}
+
 /* Dual-Orientation: Mobile Landscape (Yatay Ekran) Compact HUD Adaptation */
 @media (max-height: 540px) and (orientation: landscape) {
   .hud-header {

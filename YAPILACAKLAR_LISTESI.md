@@ -320,3 +320,7 @@ Chrome üzerinden AOH3’ün diplomasi zirvesi, teknoloji ağacı, ekonomi yatı
 Bizim Chrome önizlememizde en belirgin yoğunluk, harita modlarının, hızlı işlemlerin ve alt navigasyonun aynı anda açık olmasıydı. İlk görsel düzeltmede `MapModePillBar` sadeleştirildi: Harita modları artık başlangıçta tek satırlık “Katmanlar” başlığı altında kapalı, hızlı işlemler de tek satırlık bağlamsal başlık altında kapalı geliyor. Seçili mod ve aktif hızlı işlem başlıkta görünür kalıyor; tıklama ile seçenekler açılıyor. Böylece işlev kaybolmadan haritanın ilk bakıştaki bilgi yükü azaltıldı.
 
 AOH3 referans görselleri `references/aoh3/` klasöründe saklanıyor. İlk değişiklik Chrome masaüstü önizlemesinde doğrulandı; production build başarılı. Sonraki görsel dilim: AOH3’teki sol dikey sistem çubuğuna yaklaşmak için mevcut alt navigasyonu masaüstünde kompakt bir sistem rail’ine, mobilde ise yatay dokunma çubuğuna dönüştürmek; ardından eyalet panelindeki eylemleri aynı bağlamsal kart mantığıyla azaltmak.
+
+### Sistem rail doğrulaması
+
+Alt navigasyon masaüstünde 1280×720 Chrome görünümünde sol tarafta kompakt dikey sistem rail’i olarak doğrulandı. Eyalet, ekonomi, diplomasi, yönetim ve ordugâh girişleri ikon + kısa etiketlerle tek yerde toplandı. 896×414 dar yatay Chrome görünümünde mobil kullanıcılar için alt yatay dokunma çubuğu korundu; böylece masaüstü AOH3 hiyerarşisi ile mobil erişilebilirlik birlikte sürdürüldü.

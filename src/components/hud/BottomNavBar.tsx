@@ -40,6 +40,8 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
         return (
           <button
             key={tab.id}
+            title={tab.label}
+            aria-label={tab.label}
             onClick={() => {
               sound.playClick();
               onSetActiveTab(isActive ? 'NONE' : tab.id);
