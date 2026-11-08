@@ -333,38 +333,54 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                     </div>
                   </div>
 
-                  {/* Compact Mobile 3-Tab Switcher (Zero-Scroll Android UX) */}
+                  {/* Compact Mobile 3-Tab Switcher (AoH3-style contextual sections) */}
                   {isSelectedPlayerOwned && (
-                    <div className="grid grid-cols-3 gap-1.5 bg-slate-900 p-1 rounded-xl border border-slate-800 lg:hidden">
+                    <div
+                      role="tablist"
+                      aria-label="Eyalet yönetim bölümleri"
+                      className="sticky top-0 z-10 grid grid-cols-3 gap-1.5 bg-slate-950/95 backdrop-blur-md p-1 rounded-xl border border-slate-800 lg:hidden"
+                    >
                       <button
+                        role="tab"
+                        aria-selected={provinceSubTab === 'ARMY'}
                         onClick={() => setProvinceSubTab('ARMY')}
-                        className={`min-h-[38px] rounded-lg text-xs font-bold transition-colors ${
+                        className={`min-h-[48px] rounded-lg text-xs font-bold transition-colors flex flex-col items-center justify-center gap-0.5 ${
                           provinceSubTab === 'ARMY'
                             ? 'bg-amber-500 text-slate-950'
                             : 'text-slate-300 hover:text-white'
                         }`}
                       >
-                        ⚔️ Ordu & Sefer
+                        <span className="text-sm leading-none">⚔️</span>
+                        <span>Ordu</span>
+                        <span className="text-[9px] font-medium opacity-70">Sefer & birlik</span>
                       </button>
                       <button
+                        role="tab"
+                        aria-selected={provinceSubTab === 'ECONOMY'}
                         onClick={() => setProvinceSubTab('ECONOMY')}
-                        className={`min-h-[38px] rounded-lg text-xs font-bold transition-colors ${
+                        className={`min-h-[48px] rounded-lg text-xs font-bold transition-colors flex flex-col items-center justify-center gap-0.5 ${
                           provinceSubTab === 'ECONOMY'
                             ? 'bg-amber-500 text-slate-950'
                             : 'text-slate-300 hover:text-white'
                         }`}
                       >
-                        🏛️ Bina & İdare
+                        <span className="text-sm leading-none">🏛️</span>
+                        <span>Ekonomi</span>
+                        <span className="text-[9px] font-medium opacity-70">Bina & gelir</span>
                       </button>
                       <button
+                        role="tab"
+                        aria-selected={provinceSubTab === 'FIEF'}
                         onClick={() => setProvinceSubTab('FIEF')}
-                        className={`min-h-[38px] rounded-lg text-xs font-bold transition-colors ${
+                        className={`min-h-[48px] rounded-lg text-xs font-bold transition-colors flex flex-col items-center justify-center gap-0.5 ${
                           provinceSubTab === 'FIEF'
                             ? 'bg-purple-500 text-white'
                             : 'text-slate-300 hover:text-white'
                         }`}
                       >
-                        ⚜️ Tımar & Vali
+                        <span className="text-sm leading-none">⚜️</span>
+                        <span>Yönetim</span>
+                        <span className="text-[9px] font-medium opacity-70">Tımar & vali</span>
                       </button>
                     </div>
                   )}

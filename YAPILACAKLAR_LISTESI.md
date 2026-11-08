@@ -330,3 +330,9 @@ Alt navigasyon masaüstünde 1280×720 Chrome görünümünde sol tarafta kompak
 Seçili eyalet alt şeridinde normal yardımcı eylemler artık varsayılan olarak kapalı bir `Eylemler` grubunda. Savaş/kuşatma bildirimi varsa görünür kalıyor; ana bağlam düğmesi `İnşa & Eyalet` veya `İncele` olarak kalıyor. Kullanıcı `Eylemler`e dokunduğunda yalnızca o eyalete uygun Sefer, hızlı asker toplama veya Diplomasi eylemi açılıyor. Bu düzen AOH3’teki bağlamsal panel yaklaşımına daha yakın ve telefonda yatay buton sıkışmasını azaltıyor.
 
 Chrome doğrulaması: yabancı eyalet seçimi ve Eylemler açılımı mobil viewport’ta başarılı. Production build başarılı. TypeScript kontrolü yalnızca mevcut `geojson` tip paketi eksikliği nedeniyle başarısız; yeni panel JSX hatası giderildi.
+
+## Mobil Eyalet Yönetim Sekmeleri ve Görsel Hiyerarşi (2026-11-08)
+
+Seçili oyuncu eyaletinin mobil yönetim panelindeki sekmeler sadeleştirildi: `Ordu` (sefer & birlik), `Ekonomi` (bina & gelir) ve `Yönetim` (tımar & vali). Sekmeler artık erişilebilir tab rolleri taşıyor, 48px dokunma hedefi kullanıyor, kısa açıklama satırı içeriyor ve panel kaydırılırken üstte sabit kalıyor. Bu yapı AOH3’teki bağlamsal sistem bölümlerine daha yakın; kullanıcı hangi kart grubunu açtığını ilk bakışta anlayabiliyor.
+
+Chrome’da seçili eyalet paneli görsel olarak doğrulandı: eyalet özeti üstte, ordu/sefer ve bina-yatırım kartları ayrı yüzeylerde okunuyor. Production build başarılı. TypeScript kontrolündeki kalan hatalar mevcut `geojson` tip paketi eksikliğinden kaynaklanıyor.
