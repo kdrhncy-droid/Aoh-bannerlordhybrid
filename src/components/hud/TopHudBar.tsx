@@ -94,7 +94,7 @@ export const TopHudBar: React.FC<TopHudBarProps> = ({
   };
 
   return (
-    <header className="hud-header px-2.5 py-1.5 sm:py-0 sm:h-14 sm:px-4 bg-[#070b14]/98 border-b border-amber-500/35 shadow-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2 z-30 shrink-0">
+    <header className="hud-header hud-surface px-2.5 py-1.5 sm:py-0 sm:h-14 sm:px-4 border-b border-amber-500/35 shadow-lg flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1.5 sm:gap-2 z-30 shrink-0">
       {/* Row 1 on Portrait / Left+Right Wrapper on Mobile */}
       <div className="flex items-center justify-between gap-2 w-full sm:w-auto sm:justify-start min-w-0">
         {/* Left: Menu + AoH3 Top-Left Imperial Flag Shield & Nation Hub */}
@@ -106,7 +106,7 @@ export const TopHudBar: React.FC<TopHudBarProps> = ({
               onOpenSystemModal();
             }}
             title="Sistem Menüsü, UI Ölçeği & Kayıt Merkezi"
-            className="min-w-[36px] min-h-[36px] sm:min-h-[38px] px-2 rounded-xl bg-[#0c1324] hover:bg-slate-800 border border-amber-500/35 flex items-center justify-center gap-1.5 text-slate-200 shrink-0"
+            className="min-w-[36px] min-h-[36px] sm:min-h-[38px] px-2 rounded-xl hud-chip hover:bg-slate-800 flex items-center justify-center gap-1.5 text-slate-200 shrink-0"
           >
             <Menu className="w-4 h-4 text-amber-400 shrink-0" />
             <span className="hidden lg:inline text-xs font-semibold">Menü</span>

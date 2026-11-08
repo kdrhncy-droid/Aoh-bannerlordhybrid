@@ -342,3 +342,15 @@ Chrome’da seçili eyalet paneli görsel olarak doğrulandı: eyalet özeti üs
 Eyalet ekonomi bölümündeki bina kartları mobil tarama sırasına göre yeniden düzenlendi: bina adı ve seviye, tek satır etkisi, maliyet/süre meta satırı ve kısa `Yükselt` düğmesi. Uzun genel açıklama mobilde gizlendi; geniş ekranlarda bağlam için korunuyor. İnşaat sırası varsa aynı meta satırında kalan gün, tamamlanan bina için `Tamamlandı` durumu gösteriliyor. Bölüm başlığı da `Binalar & Altyapı` olarak kısaltıldı.
 
 Chrome’da açık eyalet paneliyle görsel doğrulama yapıldı; kartlar daha kısa, düğmeler daha anlaşılır ve alt alta taranabilir durumda. Production build başarılı. TypeScript kontrolündeki kalan hata mevcut `geojson` tip paketi eksikliğidir.
+
+## Görsel Tema ve HUD Profesyonelleştirme Paketi (2026-11-08)
+
+Birden fazla görsel güncelleme birlikte uygulandı ve en sonda toplu doğrulandı:
+
+- Global HUD renk tokenları eklendi: koyu mürekkep/panel yüzeyleri, tek altın vurgu rengi, ikincil mavi, olumlu yeşil ve savaş kırmızısı. Alt navigasyon, üst HUD, harita katmanları ve diplomasi yüzeyleri bu hiyerarşiye bağlandı.
+- Harita katmanları artık yalnızca metin değil; her mod ikon/glif ve renk tonuyla seçiliyor: Siyasi, Din, Kültür, Asimilasyon, Arazi, Diplomasi, Ekonomi, İdeoloji ve Askeri.
+- İdeoloji seçimi görsel kartlara dönüştürüldü: ideoloji glifi, ideolojiye özgü renk, kısa açıklama, Vergi/Ordu bonus çipleri ve `AKTİF` durumu aynı kartta gösteriliyor.
+- Diplomasi krallık kartlarına ulus rengi boyunca dikey durum şeridi ve ilişki durumuna göre renkli sınır eklendi. Böylece ülke kartları yalnızca metin listesi değil, hızlı okunabilir görsel istihbarat yüzeyleri oldu.
+- Üst HUD ve alt navigasyon ortak yüzey/aktiflik stillerini kullanıyor; buton renkleri daha az dağınık ve daha tutarlı.
+
+Toplu doğrulama: production build başarılı; `node --import tsx --test src/engine/simulationEngine.test.ts` sonucu 16/16 başarılı. Chrome’da harita katmanları, ideoloji kartları ve diplomasi kartları görsel olarak kontrol edildi. TypeScript kontrolü mevcut `geojson` tip paketi eksikliğinde duruyor; bu turdaki görsel dosyalarda ek TypeScript hatası yok.

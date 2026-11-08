@@ -89,7 +89,7 @@ export const DiplomacyDrawer: React.FC<CommandDrawersProps> = ({
                       return (
                         <div
                           key={realm.id}
-                          className={`rounded-2xl p-4 space-y-3 border transition-all ${
+                          className={`relative overflow-hidden rounded-2xl p-4 space-y-3 border transition-all ${
                             isPlayer
                               ? 'bg-amber-950/20 border-amber-500/60 shadow-lg ring-1 ring-amber-500/30'
                               : war
@@ -98,7 +98,21 @@ export const DiplomacyDrawer: React.FC<CommandDrawersProps> = ({
                               ? 'bg-emerald-950/20 border-emerald-500/50'
                               : 'bg-slate-950/85 border-slate-800'
                           }`}
+                          style={{
+                            borderColor: isPlayer
+                              ? `${realm.color}aa`
+                              : war
+                              ? 'rgba(224, 123, 123, 0.55)'
+                              : rel?.allianceType
+                              ? 'rgba(103, 201, 155, 0.5)'
+                              : undefined,
+                          }}
                         >
+                          <span
+                            className="absolute inset-y-0 left-0 w-1"
+                            style={{ backgroundColor: realm.color }}
+                            aria-hidden="true"
+                          />
                           {/* Card Header: Flag, Name & Ruler */}
                           <div className="flex items-center justify-between gap-2.5">
                             <div className="flex items-center gap-2.5 min-w-0">

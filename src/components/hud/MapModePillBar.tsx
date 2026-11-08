@@ -27,16 +27,16 @@ interface MapModePillBarProps {
   onSetMacroMode?: (mode: MapMacroMode) => void;
 }
 
-const MAP_MODES: ReadonlyArray<{ id: MapMode; label: string }> = [
-  { id: 'POLITICAL', label: 'Siyasi' },
-  { id: 'RELIGION', label: '☪ Din' },
-  { id: 'CULTURE', label: '🏹 Kültür' },
-  { id: 'ASSIMILATION', label: '🌟 Asimilasyon' },
-  { id: 'TERRAIN', label: 'Arazi' },
-  { id: 'DIPLOMATIC', label: 'Diplomasi' },
-  { id: 'ECONOMIC', label: 'Ekonomi' },
-  { id: 'IDEOLOGY', label: 'İdeoloji' },
-  { id: 'MILITARY', label: 'Askeri' },
+const MAP_MODES: ReadonlyArray<{ id: MapMode; label: string; glyph: string; tone: string }> = [
+  { id: 'POLITICAL', label: 'Siyasi', glyph: '◈', tone: 'text-amber-300' },
+  { id: 'RELIGION', label: 'Din', glyph: '☪', tone: 'text-emerald-300' },
+  { id: 'CULTURE', label: 'Kültür', glyph: '🏹', tone: 'text-violet-300' },
+  { id: 'ASSIMILATION', label: 'Asimilasyon', glyph: '✦', tone: 'text-orange-300' },
+  { id: 'TERRAIN', label: 'Arazi', glyph: '⌁', tone: 'text-lime-300' },
+  { id: 'DIPLOMATIC', label: 'Diplomasi', glyph: '⚖', tone: 'text-sky-300' },
+  { id: 'ECONOMIC', label: 'Ekonomi', glyph: '◉', tone: 'text-yellow-300' },
+  { id: 'IDEOLOGY', label: 'İdeoloji', glyph: '◆', tone: 'text-fuchsia-300' },
+  { id: 'MILITARY', label: 'Askeri', glyph: '⚔', tone: 'text-rose-300' },
 ];
 
 export const MapModePillBar: React.FC<MapModePillBarProps> = ({
@@ -59,7 +59,7 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
     <>
       <div className="hud-mapmode-bar absolute top-2.5 left-2.5 z-20 flex flex-col gap-1.5 max-w-[calc(100vw-130px)] sm:max-w-[calc(100vw-220px)] pointer-events-none">
         {/* Row 1: AoH3 Map Lenses */}
-        <div className="hud-mapmode-shell pointer-events-auto bg-[#090e1a]/94 rounded-xl border border-amber-500/35 shadow-xl overflow-hidden">
+        <div className="hud-mapmode-shell hud-surface pointer-events-auto rounded-xl border border-amber-500/35 shadow-xl overflow-hidden">
           <button
             type="button"
             onClick={() => setMapModesOpen((open) => !open)}
@@ -72,8 +72,8 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
               <span>Katmanlar</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="text-[10px] font-semibold text-slate-400 whitespace-nowrap">
-                {MAP_MODES.find((m) => m.id === mapMode)?.label}
+                <span className="text-[10px] font-semibold text-slate-400 whitespace-nowrap">
+                  {MAP_MODES.find((m) => m.id === mapMode)?.glyph} {MAP_MODES.find((m) => m.id === mapMode)?.label}
               </span>
               {mapModesOpen ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
             </div>
@@ -86,13 +86,14 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
                 sound.playClick();
                 onSetMapMode(m.id);
               }}
-              className={`px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+              className={`px-2.5 py-1 rounded-lg text-[11px] sm:text-xs font-semibold transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 border border-transparent ${
                 mapMode === m.id
-                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm'
-                  : 'text-slate-300 hover:text-white'
+                  ? 'bg-amber-500 text-slate-950 font-bold shadow-sm border-amber-300'
+                  : `text-slate-300 hover:text-white hover:bg-slate-800/80 ${m.tone}`
               }`}
             >
-              {m.label}
+              <span aria-hidden="true" className="text-sm leading-none">{m.glyph}</span>
+              <span>{m.label}</span>
             </button>
           ))}
         </div>}
@@ -100,7 +101,7 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
 
         {/* Row 2: AoH3 Mobile Macro-Builder & 1-Tap Map Recruitment Mode */}
         {onSetMacroMode && (
-          <div className="hud-macro-bar pointer-events-auto bg-[#090e1a]/92 rounded-xl border border-slate-800/90 shadow-lg overflow-hidden">
+          <div className="hud-macro-bar hud-surface pointer-events-auto rounded-xl border border-slate-800/90 shadow-lg overflow-hidden">
             <button
               type="button"
               onClick={() => setMacroOpen((open) => !open)}

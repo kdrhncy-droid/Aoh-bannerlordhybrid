@@ -10,6 +10,15 @@ import {
   getTechTreeForMode,
 } from "../../data/world2026Data";
 
+const IDEOLOGY_GLYPHS: Record<string, string> = {
+  DEMOCRACY: '⚖',
+  AUTHORITARIAN: '◈',
+  MONARCHY: '♛',
+  SOCIALIST: '★',
+  MILITARY_JUNTA: '⚔',
+  TECHNO_CORPORATISM: '✦',
+};
+
 export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
   playerNation,
   playerEconomy,
@@ -67,24 +76,37 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                         <button
                           key={ideo.id}
                           onClick={() => onChangeIdeology(ideo.id)}
-                          className={`p-2.5 rounded-xl border text-left transition-all ${
+                          aria-pressed={isCurrent}
+                          className={`p-2.5 rounded-xl border text-left transition-all flex items-start gap-2.5 ${
                             isCurrent
-                              ? 'bg-amber-500/15 border-amber-500 text-white'
-                              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-700'
+                              ? 'bg-slate-900 border-2 text-white shadow-lg'
+                              : 'bg-slate-900/80 border-slate-800 text-slate-300 hover:border-slate-600'
                           }`}
+                          style={{ borderColor: isCurrent ? ideo.color : undefined }}
                         >
-                          <div className="text-xs font-bold text-white">
-                            {ideo.name}
-                          </div>
-                          <div className="text-[10px] text-amber-400 mt-0.5">
-                            Vergi %
-                            {ideo.taxBonus >= 0
-                              ? `+${ideo.taxBonus}`
-                              : ideo.taxBonus}{' '}
-                            · Ordu %
-                            {ideo.militaryAttackBonus >= 0
-                              ? `+${ideo.militaryAttackBonus}`
-                              : ideo.militaryAttackBonus}
+                          <span
+                            className="w-9 h-9 rounded-xl flex items-center justify-center text-lg font-display shrink-0 border border-white/15 shadow-inner"
+                            style={{ backgroundColor: `${ideo.color}33`, color: ideo.color }}
+                            aria-hidden="true"
+                          >
+                            {IDEOLOGY_GLYPHS[ideo.id] ?? '◆'}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <div className="text-xs font-bold text-white truncate">
+                              {ideo.name}
+                            </div>
+                            <div className="text-[10px] text-slate-400 line-clamp-1 mt-0.5">
+                              {ideo.description}
+                            </div>
+                            <div className="flex flex-wrap gap-1 mt-1">
+                              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                                Vergi {ideo.taxBonus >= 0 ? `+${ideo.taxBonus}` : ideo.taxBonus}
+                              </span>
+                              <span className="px-1.5 py-0.5 rounded-md text-[9px] font-bold bg-rose-500/10 text-rose-300 border border-rose-500/20">
+                                Ordu {ideo.militaryAttackBonus >= 0 ? `+${ideo.militaryAttackBonus}` : ideo.militaryAttackBonus}
+                              </span>
+                              {isCurrent && <span className="px-1.5 py-0.5 rounded-md text-[9px] font-black bg-emerald-500/15 text-emerald-300">AKTİF</span>}
+                            </div>
                           </div>
                         </button>
                       );
