@@ -864,9 +864,9 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                         <div>
                           <h3 className="text-sm font-bold text-white flex items-center gap-2">
                             <Hammer className="w-4 h-4 text-amber-400" />
-                            Eyalet Altyapı ve Bina Yatırımları
+                            Binalar & Altyapı
                           </h3>
-                          <p className="text-xs text-slate-400">
+                          <p className="hidden sm:block text-xs text-slate-400">
                             Binalar bölgenin ekonomik gelirini, savunmasını ve araştırma kapasitesini kalıcı olarak büyütür.
                           </p>
                         </div>
@@ -889,12 +889,12 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                           return (
                             <div
                               key={b.id}
-                              className="bg-slate-900/90 border border-slate-800 rounded-xl p-3 flex flex-col justify-between gap-2.5"
+                              className="bg-slate-900/90 border border-slate-800 rounded-xl p-2.5 flex flex-col justify-between gap-2"
                             >
                               <div className="flex items-start gap-2.5">
                                 <BuildingIllustrationSvg
                                   buildingKey={b.id}
-                                  className="w-11 h-11 shrink-0"
+                                  className="w-10 h-10 shrink-0"
                                 />
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center justify-between gap-1">
@@ -905,10 +905,10 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                                       Sv.{currentLvl}/{b.maxLevel}
                                     </span>
                                   </div>
-                                  <p className="text-[10.5px] text-slate-400 mt-0.5 line-clamp-2">
+                                  <p className="hidden sm:block text-[10.5px] text-slate-400 mt-0.5 line-clamp-1">
                                     {b.description}
                                   </p>
-                                  <div className="text-[10.5px] text-emerald-400 mt-0.5 font-medium">
+                                  <div className="text-[10.5px] text-emerald-400 mt-0.5 font-medium line-clamp-1">
                                     {b.effectSummary}
                                   </div>
 
@@ -938,6 +938,13 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                                 </div>
                               </div>
 
+                              <div className="flex items-center justify-between gap-2 text-[10px] font-mono-num text-slate-400">
+                                <span>{queuedItem ? 'İnşa sırası' : isMax ? 'Tamamlandı' : 'Sonraki seviye'}</span>
+                                <span className="text-amber-300">
+                                  {!queuedItem && !isMax ? `${cost}G · ${estDays}g` : queuedItem ? `${queuedItem.totalDays - queuedItem.progressDays}g kaldı` : '—'}
+                                </span>
+                              </div>
+
                               <button
                                 disabled={!canAfford}
                                 onClick={() =>
@@ -955,7 +962,7 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                               >
                                 {queuedItem ? (
                                   <>
-                                    <Hammer className="w-3.5 h-3.5 animate-spin" /> İnşa Ediliyor ({queuedItem.totalDays - queuedItem.progressDays}g)
+                                    <Hammer className="w-3.5 h-3.5 animate-spin" /> İnşa ediliyor
                                   </>
                                 ) : isMax ? (
                                   <>
@@ -963,7 +970,7 @@ export const ProvinceDrawer: React.FC<CommandDrawersProps> = ({
                                   </>
                                 ) : (
                                   <>
-                                    <Hammer className="w-3.5 h-3.5" /> İnşa Et ({cost}G · ~{estDays} Gün)
+                                    <Hammer className="w-3.5 h-3.5" /> Yükselt
                                   </>
                                 )}
                               </button>

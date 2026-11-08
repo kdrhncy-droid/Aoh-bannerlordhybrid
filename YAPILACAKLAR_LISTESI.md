@@ -336,3 +336,9 @@ Chrome doğrulaması: yabancı eyalet seçimi ve Eylemler açılımı mobil view
 Seçili oyuncu eyaletinin mobil yönetim panelindeki sekmeler sadeleştirildi: `Ordu` (sefer & birlik), `Ekonomi` (bina & gelir) ve `Yönetim` (tımar & vali). Sekmeler artık erişilebilir tab rolleri taşıyor, 48px dokunma hedefi kullanıyor, kısa açıklama satırı içeriyor ve panel kaydırılırken üstte sabit kalıyor. Bu yapı AOH3’teki bağlamsal sistem bölümlerine daha yakın; kullanıcı hangi kart grubunu açtığını ilk bakışta anlayabiliyor.
 
 Chrome’da seçili eyalet paneli görsel olarak doğrulandı: eyalet özeti üstte, ordu/sefer ve bina-yatırım kartları ayrı yüzeylerde okunuyor. Production build başarılı. TypeScript kontrolündeki kalan hatalar mevcut `geojson` tip paketi eksikliğinden kaynaklanıyor.
+
+## Mobil Ekonomi ve Bina Kartları Sadeleştirme (2026-11-08)
+
+Eyalet ekonomi bölümündeki bina kartları mobil tarama sırasına göre yeniden düzenlendi: bina adı ve seviye, tek satır etkisi, maliyet/süre meta satırı ve kısa `Yükselt` düğmesi. Uzun genel açıklama mobilde gizlendi; geniş ekranlarda bağlam için korunuyor. İnşaat sırası varsa aynı meta satırında kalan gün, tamamlanan bina için `Tamamlandı` durumu gösteriliyor. Bölüm başlığı da `Binalar & Altyapı` olarak kısaltıldı.
+
+Chrome’da açık eyalet paneliyle görsel doğrulama yapıldı; kartlar daha kısa, düğmeler daha anlaşılır ve alt alta taranabilir durumda. Production build başarılı. TypeScript kontrolündeki kalan hata mevcut `geojson` tip paketi eksikliğidir.
