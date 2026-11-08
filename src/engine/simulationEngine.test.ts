@@ -1051,7 +1051,8 @@ test('startMissionaryDomain initiates conversion and computeGameTick completes i
   const convertedTerritory = tickResult.territories['300'];
   assert.equal(convertedTerritory.religion, 'ISLAM_SUNNI');
   assert.equal(convertedTerritory.missionary, null);
-  assert.equal(convertedTerritory.unrest, 17); // 25 - 8 = 17 unrest
+  assert.equal(convertedTerritory.unrest, 16.88); // 25 - 8 missionary - 0.12 supply depot
+  assert.ok(convertedTerritory.population > 120); // Daily province growth is now simulated
 
   // 4. Verify Map Mode color now reflects Sunni Islam
   const relColorAfter = resolveTerritoryFillColor({
@@ -1066,8 +1067,6 @@ test('startMissionaryDomain initiates conversion and computeGameTick completes i
   });
   assert.equal(relColorAfter, RELIGIONS.ISLAM_SUNNI.color);
 });
-
-
 
 
 

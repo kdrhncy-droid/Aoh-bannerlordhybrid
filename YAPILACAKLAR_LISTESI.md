@@ -296,3 +296,7 @@ AOH3 parity tamamlanmadan yeni dekoratif efekt, yeni hibrit mekanik veya rastgel
 İlk tekil öncelik olarak ekonomi döngüsünün eyalet temelini düzelttik. Önceden `Territory.population` yalnızca dünya kurulurken atanıyor ve günlük simülasyonda hiç değişmiyordu. Bu nedenle AOH3 tarzı nüfus → manpower/ekonomi büyümesi kampanya boyunca çalışmıyordu. `src/engine/tickEngine.ts` içinde günlük nüfus büyümesi eklendi; büyüme huzursuzlukla yavaşlıyor ve `supplyDepot` seviyesiyle artıyor. Aynı binanın tanımlı yerel düzen etkisi de günlük huzursuzluk azaltımı olarak bağlandı.
 
 Bu değişiklik yeni mekanik eklemekten çok mevcut veri modelindeki kopukluğu giderir. Production build başarılıdır. TypeScript kontrolü, bu değişiklikle ilgisi olmayan mevcut `geojson` tip paketi/implicit-any hataları nedeniyle tamamlanamamıştır ve ayrı altyapı işi olarak izlenmelidir. Bir sonraki AOH3 karşılaştırma düzeltmesine geçmeden önce bu ekonomi döngüsü için hedefli regresyon testi eklenmelidir.
+
+### Düzeltme 01 doğrulaması
+
+`node --import tsx --test src/engine/simulationEngine.test.ts` sonucu: **14 test geçti, 0 hata**. Misyonerlik/asayiş senaryosu artık nüfus büyümesini ve supply depot huzursuzluk etkisini birlikte doğruluyor.
