@@ -354,3 +354,14 @@ Birden fazla görsel güncelleme birlikte uygulandı ve en sonda toplu doğrulan
 - Üst HUD ve alt navigasyon ortak yüzey/aktiflik stillerini kullanıyor; buton renkleri daha az dağınık ve daha tutarlı.
 
 Toplu doğrulama: production build başarılı; `node --import tsx --test src/engine/simulationEngine.test.ts` sonucu 16/16 başarılı. Chrome’da harita katmanları, ideoloji kartları ve diplomasi kartları görsel olarak kontrol edildi. TypeScript kontrolü mevcut `geojson` tip paketi eksikliğinde duruyor; bu turdaki görsel dosyalarda ek TypeScript hatası yok.
+
+## Görsel Reform ve Teknoloji Kartları (2026-11-08)
+
+Bir önceki görsel paketin devamında metin ağırlıklı kalan iki alan da görselleştirildi:
+
+- Ulusal reformlar artık ikonlu kısa kartlar kullanıyor; reform etkisi tek satırda, maliyet `G` ve araştırma puanı `RP` olarak kompakt gösteriliyor.
+- Teknoloji düğümlerine dal ikonları eklendi: Askeri, Ekonomi, İdare ve Bilim farklı renk/ikon kimliğine sahip.
+- Teknoloji açıklamaları mobilde tek satıra indirildi; etki etiketi yeşil görsel çip olarak öne çıkarıldı.
+- Kilitli, araştırılan ve tamamlanan teknoloji durumları mevcut buton renkleriyle birlikte daha kolay ayırt ediliyor.
+
+Chrome görsel teyidi: ideoloji kartları, reform kartları ve teknoloji ağacı aynı yönetim panelinde açıldı; ikonlar, renkler ve metin taşmaları kontrol edildi. Son production build başarılı; simülasyon testleri 16/16 başarılı. TypeScript kontrolündeki tek sorun mevcut `geojson` tip paketi eksikliği.

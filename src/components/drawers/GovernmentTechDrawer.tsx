@@ -19,6 +19,14 @@ const IDEOLOGY_GLYPHS: Record<string, string> = {
   TECHNO_CORPORATISM: '✦',
 };
 
+const REFORM_GLYPHS = ['◉', '⚔', '⚓', '⚒', '✦', '⚖'];
+const TECH_BRANCH_META: Record<string, { glyph: string; color: string }> = {
+  MILITARY: { glyph: '⚔', color: '#e07b7b' },
+  ECONOMY: { glyph: '◉', color: '#e0ad52' },
+  ADMINISTRATION: { glyph: '♜', color: '#67c99b' },
+  SCIENCE: { glyph: '✦', color: '#62b7d7' },
+};
+
 export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
   playerNation,
   playerEconomy,
@@ -120,7 +128,7 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                     Ulusal Reformlar ve Kanunlar
                   </h3>
                   <div className="space-y-2 max-h-[220px] overflow-y-auto pr-1">
-                    {activeReforms.map((ref) => {
+                    {activeReforms.map((ref, reformIndex) => {
                       const enacted = playerNation.enactedReforms.includes(
                         ref.id
                       );
@@ -131,14 +139,19 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                       return (
                         <div
                           key={ref.id}
-                          className="bg-slate-900 border border-slate-800 rounded-xl p-3 flex items-center justify-between gap-3"
+                          className="bg-slate-900 border border-slate-800 rounded-xl p-2.5 flex items-center justify-between gap-3"
                         >
-                          <div>
-                            <div className="text-xs font-bold text-white">
-                              {ref.name}
-                            </div>
-                            <div className="text-[11px] text-emerald-400">
-                              {ref.effectLabel}
+                          <div className="flex items-start gap-2 min-w-0">
+                            <span className="w-8 h-8 rounded-lg bg-amber-500/10 border border-amber-500/25 text-amber-300 flex items-center justify-center text-base shrink-0">
+                              {REFORM_GLYPHS[reformIndex % REFORM_GLYPHS.length]}
+                            </span>
+                            <div className="min-w-0">
+                              <div className="text-xs font-bold text-white truncate">
+                                {ref.name}
+                              </div>
+                              <div className="text-[10px] text-emerald-400 line-clamp-1">
+                                {ref.effectLabel}
+                              </div>
                             </div>
                           </div>
                           <button
@@ -154,7 +167,7 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                           >
                             {enacted
                               ? 'Yürürlükte'
-                              : `${ref.costGold} Altın · ${ref.costResearch} Arş.`}
+                              : `${ref.costGold}G · ${ref.costResearch} RP`}
                           </button>
                         </div>
                       );
@@ -496,7 +509,17 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                         >
                           <div className="min-w-0 flex-1">
                             <div className="flex items-center gap-2">
-                              <span className="font-mono-num text-xs text-sky-400 font-bold px-1.5 py-0.5 rounded bg-sky-950/60 border border-sky-500/30">
+                              <span
+                                className="w-7 h-7 rounded-lg flex items-center justify-center text-sm font-bold border shrink-0"
+                                style={{
+                                  color: TECH_BRANCH_META[tech.branch]?.color || '#62b7d7',
+                                  borderColor: `${TECH_BRANCH_META[tech.branch]?.color || '#62b7d7'}66`,
+                                  backgroundColor: `${TECH_BRANCH_META[tech.branch]?.color || '#62b7d7'}18`,
+                                }}
+                              >
+                                {TECH_BRANCH_META[tech.branch]?.glyph || '◆'}
+                              </span>
+                              <span className="font-mono-num text-[10px] text-sky-400 font-bold px-1.5 py-0.5 rounded bg-sky-950/60 border border-sky-500/30">
                                 Kademe {tech.tier}
                               </span>
                               <span className="text-sm font-bold text-white">
@@ -508,10 +531,10 @@ export const GovernmentTechDrawer: React.FC<CommandDrawersProps> = ({
                                 </span>
                               )}
                             </div>
-                            <p className="text-xs text-slate-400 mt-1">
+                            <p className="hidden sm:block text-xs text-slate-400 mt-1 line-clamp-1">
                               {tech.description}
                             </p>
-                            <div className="text-xs font-semibold text-emerald-400 mt-1">
+                            <div className="inline-flex max-w-full text-[10px] font-semibold text-emerald-300 mt-1 px-1.5 py-0.5 rounded-md bg-emerald-500/10 border border-emerald-500/20 truncate">
                               {tech.effectLabel}
                             </div>
 
