@@ -16,6 +16,7 @@ import {
   queryVisibleFeatures,
 } from '../map/spatialIndex';
 import { useMapGestures } from '../map/useMapGestures';
+import { performanceTelemetry } from '../utils/performanceTelemetry';
 import {
   ActiveBattle,
   ActiveWar,
@@ -83,7 +84,13 @@ export const WorldMapCanvas: React.FC<WorldMapCanvasProps> = ({
     fogOfWarEnabled: boolean;
   } | null>(null);
   const lastCenteredKeyRef = useRef<string>('');
+  const lastPerfTransformRef = useRef(transform);
   const [viewportRevision, setViewportRevision] = useState(0);
+
+  useEffect(() => {
+    performanceTelemetry.start();
+    return () => performanceTelemetry.stop();
+  }, []);
 
   // Latest click context ref so gesture callback never goes stale across renders
   const clickContextRef = useRef({
@@ -194,7 +201,7 @@ export const WorldMapCanvas: React.FC<WorldMapCanvasProps> = ({
     }
   }, [playerNationId, features.length, territories, centerOnTerritory]);
 
-  // Main 2D Canvas Render Pass (with Offscreen Base Polygon Layer Caching for 60 FPS Army Movements!)
+  // Main 2D Canvas Render Pass (with measured frame timings for map interactions)
   useEffect(() => {
     const canvas = canvasRef.current;
     const container = containerRef.current;
@@ -202,6 +209,15 @@ export const WorldMapCanvas: React.FC<WorldMapCanvasProps> = ({
 
     const width = container.clientWidth || 1024;
     const height = container.clientHeight || 640;
+    if (transform.k !== lastPerfTransformRef.current.k) {
+      performanceTelemetry.setInteraction('zoom');
+    } else if (
+      transform.x !== lastPerfTransformRef.current.x ||
+      transform.y !== lastPerfTransformRef.current.y
+    ) {
+      performanceTelemetry.setInteraction('pan');
+    }
+    lastPerfTransformRef.current = transform;
     const dpr = Math.min(window.devicePixelRatio || 1, 2);
     const pixelW = Math.round(width * dpr);
     const pixelH = Math.round(height * dpr);

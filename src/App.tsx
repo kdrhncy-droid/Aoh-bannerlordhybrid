@@ -25,6 +25,7 @@ import { BottomNavBar } from './components/hud/BottomNavBar';
 import { AoH3OutlinerWidget } from './components/hud/AoH3OutlinerWidget';
 import { MehterhaneYoutubeDock } from './components/hud/MehterhaneYoutubeDock';
 import { AoH3BattleOverviewModal } from './components/AoH3BattleOverviewModal';
+import { performanceTelemetry } from './utils/performanceTelemetry';
 
 class GameErrorBoundary extends React.Component<
   { children: React.ReactNode },
@@ -222,6 +223,7 @@ function GameAppInner() {
       speed === 1 ? 650 : speed === 2 ? 420 : speed === 4 ? 260 : 150;
 
     const timer = setInterval(() => {
+      performanceTelemetry.recordSimulationTick();
       useGameStore.getState().advanceGameTick();
     }, intervalMs);
 

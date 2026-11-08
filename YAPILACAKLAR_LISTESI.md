@@ -137,7 +137,7 @@ Her Lordun kendine ait bir **Lord Kasası (Altın)** ve **Yönetim Arketipi (Ki�
 - **Mesafe Bazlı Savaş Sisi & Kuşatma Keşfi (Proximity Reconnaissance)**:
   - Oyuncu veya Hükümdar Sancağı düşman ordusuna/kuşatmasına uzaktayken asker sayısı gizlenir (`? ? ?`).
   - Oyuncu veya birlikler yaklaştığında gerçek garnizon ve kuşatma ordusu sayısı görünür hale gelir.
-- **Yüksek Performans (60 FPS HTML5 2D Canvas)**:
+- **Performans hedefi (ölçüm bekliyor)**: HTML5 2D Canvas harita render’ı için 60 FPS hedeflenir; cihaz/viewport ve etkileşim ölçümü olmadan başarı olarak işaretlenmez.
 ### 9. 1440 Tarihsel Birimler, Serbest Gezinti & Deniz/Kara Varlık Modelleri (✅ Tamamlandı)
 - **Haritada Serbest Yürüyüş & Varınca Açılan Menü**:
   - Şehir veya kaleye tıklandığında menü pat diye ekranı kaplamaz; `👑 Hükümdar Sancağı` arazi boyunca Bannerlord gibi fiziki olarak hedefe doğru yürür ve şehre ayak bastığında yerleşke divanı açılır.
@@ -145,7 +145,7 @@ Her Lordun kendine ait bir **Lord Kasası (Altın)** ve **Yönetim Arketipi (Ki�
 - **Tarihsel 1440 Dokusu (Osmanlı & Çağlar)**:
   - 1440 senaryosunda modern İHA/SİHA ve Zırhlı Tugay kaldırıldı; yerini **Yeniçeri Ocağı (Kapıkulu & Savunma)**, **Tımarlı Sipahi (Kanat Yarma & Süvari)** ve **Şahi Darbzen Kuşatma Topu** aldı.
   - Tarihsel komutanlar eklendi: *Çandarlı Halil Paşa, Zağanos Paşa, Turahan Bey, Şahabeddin Paşa, Baltaoğlu Süleyman Bey*.
-- **2D Kara / Deniz Varlık Modelleri (60 FPS Akıcılık)**:
+- **2D Kara / Deniz Varlık Modelleri (performans ölçümü bekliyor)**: Kara/deniz varlıkları için akıcılık hedeflenir; gerçek cihaz ölçümü olmadan 60 FPS garantisi verilmez.
   - Birlikler ve lordlar denize (Boğazlar, Ege, Karadeniz, Akdeniz) açıldıklarında otomatik olarak **Minyatür Osmanlı Kadırgası (Yelkenli Gemi)** modeline dönüşür, su dalgası izi bırakır.
   - Karaya çıktıklarında atlı sancak beyi siluetine dönerler.
 - **Dinamik & Rastgele Olay Motoru**:
@@ -245,7 +245,7 @@ Her Lordun kendine ait bir **Lord Kasası (Altın)** ve **Yönetim Arketipi (Ki�
   - Savaş sırasında düşman devlete ait tahkimatlı (`>=3.500` garnizonlu) bir boğazdan transit deniz geçişi yapılmak istendiğinde **`A*` rota motoru ve hareket motoru boğaz ablukasını devreye sokar**; düşman orduları boğaz kıyısını ele geçirmeden karşıya sızamaz!
 - **6 Büyük Ticaret Koridoru, Canlı Harita Kervan Akışı ve Savaşta Kervan Baskını (`TRADE_CORRIDORS`)**:
   - **Büyük İpek Yolu / Avrasya Koridoru**, **Baharat & Kızıldeniz Yolu**, **Karadeniz-Kıpçak Tahıl Hattı**, **Batı Akdeniz Hattı**, **Hansa & Baltık Deniz Hattı** ve **Doğu Asya Deniz Hattı** eklendi.
-  - Harita üstünden **Ekonomi** görünümü seçildiğinde kavşaklar arasındaki ticaret hatları ve akan **canlı kervan/konvoy ışıkları + `⚓` boğaz madalyonları** 60 FPS harita üzerinde çizilir (harita kalabalığı yaratmadan sıfır tıklama çakışmasıyla).
+  - Harita üstünden **Ekonomi** görünümü seçildiğinde kavşaklar arasındaki ticaret hatları ve akan **canlı kervan/konvoy ışıkları + `⚓` boğaz madalyonları** ölçümlenebilir harita render’ı üzerinde çizilir (harita kalabalığı yaratmadan sıfır tıklama çakışmasıyla).
   - Düşman bir boğazı veya ambargoyu kontrol ettiğinde koridor gelirinizde **Abluka Kaybı** oluşur (`Kale` ve `İkmal Deposu` binalarıyla konvoy koruması sağlanır).
   - Aktif savaşta **Ekonomi Çekmecesi** üzerinden **`🏴‍☠️ Düşman Kervanlarına / Konvoyuna Akın Düzenle`** (`20 ⚜ Nüfuz · 1.200 İnsan Gücü` ➔ `+180..680 Altın` ganimet, düşman istikrar ve asayiş darbesi) aksiyonu eklendi.
   - Yapay zeka (`aiAndRebellionEngine.ts` + `tickEngine.ts`) artık haftalık araştırma puanı ve boğaz gümrüğü kazanır, boğaz şehirlerinde öncelikli olarak **Ticaret Merkezi ve Kale** inşa eder.
@@ -269,3 +269,10 @@ Her Lordun kendine ait bir **Lord Kasası (Altın)** ve **Yönetim Arketipi (Ki�
 - **Seçili eyalet aksiyonları** dar yatay görünümde özet ve eylem grubu olarak yan yana hizalanıyor; eylemler taşarsa yatay kaydırılabiliyor. Yakınlaştırma yuvası için sağ kenarda güvenli boşluk korundu.
 - **Alt aksiyon şeridi** erişilebilir `aria-label` ve aktif sekme durum bilgileriyle güncellendi; yatay modda düğmeler tek satırda, ikon + kısa etiket biçiminde gösteriliyor.
 - Değişen dosyalar: `src/components/hud/MapModePillBar.tsx`, `src/components/hud/SelectedProvinceBar.tsx`, `src/components/hud/BottomNavBar.tsx`, `src/index.css`.
+
+
+## 2026-11-08 — Cihaz ve Etkileşim Performans Ölçümü (🟡 Ölçüm altyapısı eklendi)
+
+Görsel ekran görüntüsü tek başına performans kanıtı değildir. `src/utils/performanceTelemetry.ts` artık son 20 oturum için cihaz/user-agent, platform, donanım paralelliği, cihaz belleği bilgisi, device pixel ratio, viewport genişlik-yükseklik/yön bilgisi, harita etkileşimi (`pan`/`zoom`), örnek süresi, kare sayısı, ölçülen FPS ve dropped-frame oranını `localStorage` içindeki `imperium-performance-telemetry-v1` anahtarında saklar. Simülasyon için de tick örnekleri, ortalama tick süresi, p95 ve maksimum tick süresi kaydedilir.
+
+Bu kayıtlar `WorldMapCanvas` render döngüsüne ve `App` simülasyon tick döngüsüne bağlandı. Bundan sonra 60 FPS, yalnızca gerçek cihaz + gerçek viewport + pan/zoom etkileşimi için alınmış ölçüm kaydı hedef koşulu karşılıyorsa raporlanabilir; mevcut commit için 60 FPS başarı iddiası yapılmamalıdır.
