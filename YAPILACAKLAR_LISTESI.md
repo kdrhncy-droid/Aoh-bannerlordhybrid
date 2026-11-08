@@ -312,3 +312,11 @@ Kaynak kartlarındaki bonus açıklamaları artık yalnızca görsel metin deği
 Diplomasi sistemi artık hazine altınıyla sınırsız tıklama modelinden ayrıldı. Uluslara 0–100 arası `diplomacyPoints` havuzu eklendi; oyuncunun puanı günlük +1 yenileniyor. İlişki geliştirme, hakaret, saldırmazlık, askeri geçiş, ticaret, ambargo ve savunma/saldırı paktları artık diplomasi puanı tüketiyor. Pakt imzalama mevcut ilişki koşullarını koruyor.
 
 AOH3 karşılaştırmasıyla savaş ilanı da düzeltildi: hedefle ilişki `-30` veya daha düşük olmadan savaş açılamıyor ve savaş ilanı 10 diplomasi puanı tüketiyor. Diplomasi panelinde puan havuzu, günlük yenilenme, savaş ilişki eşiği ve maliyet görünür hâle getirildi. Doğrulama: `node --import tsx --test src/engine/simulationEngine.test.ts` sonucu **16 test geçti, 0 hata**; production build başarılı.
+
+## AOH3 Görsel Araştırma ve HUD Sadeleştirme (2026-11-08)
+
+Chrome üzerinden AOH3’ün diplomasi zirvesi, teknoloji ağacı, ekonomi yatırımı, eyalet/diplomasi ve bina panelleri incelendi. Ortak görsel dil: harita sürekli ana yüzey olarak kalıyor; üstte yalnızca temel kaynak ve tarih HUD’u bulunuyor; sistemler tek bir dikey giriş çubuğu veya bağlamsal panelden açılıyor; eylemler kart/ızgara içinde gruplanıyor; teknoloji ağacı tam ekran bağlantılı ilerleme ağı olarak çalışıyor; bina/ekonomi işlemleri maliyet, süre ve beklenen bonusu aynı satırda gösteriyor.
+
+Bizim Chrome önizlememizde en belirgin yoğunluk, harita modlarının, hızlı işlemlerin ve alt navigasyonun aynı anda açık olmasıydı. İlk görsel düzeltmede `MapModePillBar` sadeleştirildi: Harita modları artık başlangıçta tek satırlık “Katmanlar” başlığı altında kapalı, hızlı işlemler de tek satırlık bağlamsal başlık altında kapalı geliyor. Seçili mod ve aktif hızlı işlem başlıkta görünür kalıyor; tıklama ile seçenekler açılıyor. Böylece işlev kaybolmadan haritanın ilk bakıştaki bilgi yükü azaltıldı.
+
+AOH3 referans görselleri `references/aoh3/` klasöründe saklanıyor. İlk değişiklik Chrome masaüstü önizlemesinde doğrulandı; production build başarılı. Sonraki görsel dilim: AOH3’teki sol dikey sistem çubuğuna yaklaşmak için mevcut alt navigasyonu masaüstünde kompakt bir sistem rail’ine, mobilde ise yatay dokunma çubuğuna dönüştürmek; ardından eyalet panelindeki eylemleri aynı bağlamsal kart mantığıyla azaltmak.

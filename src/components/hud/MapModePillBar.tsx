@@ -47,6 +47,8 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
   onSetMacroMode,
 }) => {
   const [legendOpen, setLegendOpen] = useState(true);
+  const [mapModesOpen, setMapModesOpen] = useState(false);
+  const [macroOpen, setMacroOpen] = useState(false);
 
   const hasLegend =
     mapMode === 'RELIGION' ||
@@ -58,16 +60,25 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
       <div className="hud-mapmode-bar absolute top-2.5 left-2.5 z-20 flex flex-col gap-1.5 max-w-[calc(100vw-130px)] sm:max-w-[calc(100vw-220px)] pointer-events-none">
         {/* Row 1: AoH3 Map Lenses */}
         <div className="hud-mapmode-shell pointer-events-auto bg-[#090e1a]/94 rounded-xl border border-amber-500/35 shadow-xl overflow-hidden">
-          <div className="flex items-center justify-between gap-3 px-2.5 py-1 border-b border-slate-800/90">
+          <button
+            type="button"
+            onClick={() => setMapModesOpen((open) => !open)}
+            className="w-full flex items-center justify-between gap-3 px-2.5 py-1 border-b border-slate-800/90 hover:bg-slate-800/40 transition-colors"
+            aria-expanded={mapModesOpen}
+            aria-label="Harita katmanlarını aç veya kapat"
+          >
             <div className="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-[0.08em] text-amber-300">
               <Layers3 className="w-3.5 h-3.5 text-amber-400" />
-              <span>Harita modu</span>
+              <span>Katmanlar</span>
             </div>
-            <span className="text-[10px] font-semibold text-slate-400 whitespace-nowrap">
-              {MAP_MODES.find((m) => m.id === mapMode)?.label}
-            </span>
-          </div>
-          <div className="flex flex-nowrap items-center gap-1 p-1 overflow-x-auto no-scrollbar">
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-slate-400 whitespace-nowrap">
+                {MAP_MODES.find((m) => m.id === mapMode)?.label}
+              </span>
+              {mapModesOpen ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+            </div>
+          </button>
+          {mapModesOpen && <div className="flex flex-nowrap items-center gap-1 p-1 overflow-x-auto no-scrollbar">
           {MAP_MODES.map((m) => (
             <button
               key={m.id}
@@ -84,18 +95,27 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
               {m.label}
             </button>
           ))}
-        </div>
+        </div>}
         </div>
 
         {/* Row 2: AoH3 Mobile Macro-Builder & 1-Tap Map Recruitment Mode */}
         {onSetMacroMode && (
           <div className="hud-macro-bar pointer-events-auto bg-[#090e1a]/92 rounded-xl border border-slate-800/90 shadow-lg overflow-hidden">
-            <div className="flex items-center gap-1.5 px-2.5 py-1 border-b border-slate-800/80 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-300">
+            <button
+              type="button"
+              onClick={() => setMacroOpen((open) => !open)}
+              className="w-full flex items-center gap-1.5 px-2.5 py-1 border-b border-slate-800/80 text-[10px] font-bold uppercase tracking-[0.08em] text-slate-300 hover:bg-slate-800/40 transition-colors"
+              aria-expanded={macroOpen}
+              aria-label="Hızlı işlemleri aç veya kapat"
+            >
               <MousePointerClick className="w-3.5 h-3.5 text-sky-300" />
               <span>Hızlı işlemler</span>
-              <span className="ml-auto text-[9px] normal-case tracking-normal text-slate-500">Haritada eyalete dokun</span>
-            </div>
-            <div className="flex flex-nowrap items-center gap-1 p-1 max-w-full overflow-x-auto no-scrollbar">
+              <span className="ml-auto text-[9px] normal-case tracking-normal text-slate-500">
+                {macroMode === 'NONE' ? 'Haritada eyalete dokun' : 'Aktif işlem seçildi'}
+              </span>
+              {macroOpen || macroMode !== 'NONE' ? <ChevronUp className="w-3 h-3 text-slate-400" /> : <ChevronDown className="w-3 h-3 text-slate-400" />}
+            </button>
+            {(macroOpen || macroMode !== 'NONE') && <div className="flex flex-nowrap items-center gap-1 p-1 max-w-full overflow-x-auto no-scrollbar">
             <button
               onClick={() => {
                 sound.playClick();
@@ -165,7 +185,7 @@ export const MapModePillBar: React.FC<MapModePillBarProps> = ({
               <ShieldPlus className="w-3 h-3 shrink-0" />
               <span>Dokun: Kale Kur</span>
             </button>
-            </div>
+            </div>}
           </div>
         )}
       </div>
