@@ -258,3 +258,14 @@ Her Lordun kendine ait bir **Lord Kasası (Altın)** ve **Yönetim Arketipi (Ki�
 - [ ] **Tak-Çıkar Senaryo Kayıt Defteri (Scenario Plugin Registry)**: Tek bir veri dosyası ekleyerek yeni çağlar (`1440`, `1936 II. Dünya Savaşı`, `1962 Soğuk Savaş`, `2026 Modern`) ve oyun içi özel senaryo oluşturabilme altyapısı.
 - [ ] **Sinematik Dikey/Yatay Ana Menü ve 60 FPS Harita Parşömen/Su Efektleri**.
 
+
+
+---
+
+## 2026-11-08 — Dar Yatay HUD Okunabilirlik Güncellemesi (✅ Tamamlandı)
+
+- **Harita modu şeridi** artık açık bir `Harita modu` başlığı, seçili mod göstergesi ve yatay kaydırılabilir mod düğmeleri içeriyor. Böylece `Siyasi`, `Din`, `Kültür`, `Arazi`, `Diplomasi` ve diğer görünümler dar ekranda birbirine karışmıyor.
+- **Hızlı işlemler şeridi** ayrı bir `Hızlı işlemler` başlığı ve `Haritada eyalete dokun` yönlendirmesiyle gruplandı. `Seçim`, `+1B Asker`, `Ekonomi Kur` ve `Kale Kur` eylemleri aynı yatay kaydırma alanında kaldı.
+- **Seçili eyalet aksiyonları** dar yatay görünümde özet ve eylem grubu olarak yan yana hizalanıyor; eylemler taşarsa yatay kaydırılabiliyor. Yakınlaştırma yuvası için sağ kenarda güvenli boşluk korundu.
+- **Alt aksiyon şeridi** erişilebilir `aria-label` ve aktif sekme durum bilgileriyle güncellendi; yatay modda düğmeler tek satırda, ikon + kısa etiket biçiminde gösteriliyor.
+- Değişen dosyalar: `src/components/hud/MapModePillBar.tsx`, `src/components/hud/SelectedProvinceBar.tsx`, `src/components/hud/BottomNavBar.tsx`, `src/index.css`.

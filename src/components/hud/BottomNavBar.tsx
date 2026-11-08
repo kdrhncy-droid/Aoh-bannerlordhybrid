@@ -33,7 +33,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
   ];
 
   return (
-    <nav className="hud-bottom-nav h-16 pb-safe bg-slate-950/98 border-t border-slate-800/90 grid grid-cols-5 items-center z-30 shrink-0 px-1">
+    <nav aria-label="Ana aksiyon şeridi" className="hud-bottom-nav h-16 pb-safe bg-slate-950/98 border-t border-slate-800/90 grid grid-cols-5 items-center z-30 shrink-0 px-1">
       {tabs.map((tab) => {
         const Icon = tab.icon;
         const isActive = activeTab === tab.id;
@@ -49,6 +49,7 @@ export const BottomNavBar: React.FC<BottomNavBarProps> = ({
                 ? 'text-amber-400 bg-amber-500/10'
                 : 'text-slate-400 hover:text-slate-200'
             }`}
+            aria-pressed={isActive}
           >
             <Icon className="w-5 h-5 shrink-0" />
             <span className="text-[10px] font-semibold tracking-tight mt-1 whitespace-nowrap truncate max-w-[90%]">

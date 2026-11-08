@@ -103,13 +103,47 @@
     bottom: 0.45rem !important;
     left: 0.5rem !important;
     right: auto !important;
-    width: min(44vw, 390px) !important;
-    padding: 0.35rem 0.6rem !important;
+    width: min(72vw, 760px) !important;
+    max-width: calc(100vw - 4.5rem) !important;
+    padding: 0.35rem 0.5rem !important;
+    flex-direction: row !important;
+    align-items: center !important;
+    gap: 0.45rem !important;
+  }
+  .hud-province-summary {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    gap: 0.35rem !important;
+  }
+  .hud-province-actions {
+    flex: 0 1 auto !important;
+    min-width: 0 !important;
+    max-width: 52% !important;
+    gap: 0.35rem !important;
+  }
+  .hud-province-actions button {
+    min-height: 2rem !important;
+    padding-left: 0.55rem !important;
+    padding-right: 0.55rem !important;
   }
   .hud-mapmode-bar {
     top: 0.35rem !important;
     left: 0.5rem !important;
-    padding: 0.15rem !important;
+    gap: 0.35rem !important;
+    max-width: min(72vw, 760px) !important;
+  }
+  .hud-mapmode-shell,
+  .hud-macro-bar {
+    border-radius: 0.7rem !important;
+  }
+  .hud-mapmode-shell button,
+  .hud-macro-bar button {
+    min-height: 1.8rem !important;
+    padding-left: 0.55rem !important;
+    padding-right: 0.55rem !important;
+  }
+  .hud-macro-bar {
+    max-width: min(72vw, 760px) !important;
   }
   .hud-toast-banner {
     top: 2.4rem !important;
@@ -137,4 +171,3 @@
 [data-ui-scale="LARGE"] .hud-outliner {
   zoom: 1.1;
 }
-

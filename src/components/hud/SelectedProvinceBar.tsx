@@ -151,7 +151,7 @@ export const SelectedProvinceBar: React.FC<SelectedProvinceBarProps> = ({
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+      <div className="hud-province-summary flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         {/* Top Row (Portrait) / Left Block (Landscape): Illustrated Terrain Badge + Province Title + Army Breakdown */}
         <div className="flex items-center justify-between gap-2 min-w-0 sm:flex-1">
           {/* Mobile 1-Tap Province Cycle Left */}
@@ -280,7 +280,7 @@ export const SelectedProvinceBar: React.FC<SelectedProvinceBarProps> = ({
         </div>
 
         {/* Bottom Row (Portrait) / Right Block (Landscape): AoH3 1-Tap Mobile Quick Actions */}
-        <div className="flex items-center gap-1.5 shrink-0">
+        <div className="hud-province-actions flex items-center gap-1.5 shrink-0 overflow-x-auto no-scrollbar">
           {(battles.some((b) => b.territoryId === territory.id) ||
             Boolean(territory.siege)) &&
             onOpenBattleOverview && (
