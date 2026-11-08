@@ -260,6 +260,12 @@ export const DiplomacyDrawer: React.FC<CommandDrawersProps> = ({
               {/* DETAYLI ANTLAŞMA VE SAVAŞ MASASI */}
               {diploViewMode === 'DIPLOMACY_DETAILED' && (
                 <div className="space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-sky-500/30 bg-sky-950/25 px-3 py-2.5 text-xs">
+                    <span className="text-sky-200 font-semibold">
+                      Diplomasi Puanı: <strong className="font-mono-num text-white">{(playerNation.diplomacyPoints ?? 100).toFixed(0)} / 100</strong>
+                    </span>
+                    <span className="text-slate-400">Günlük +1 · Savaş ilanı: ilişki ≤ -30 · maliyet: 10 DP</span>
+                  </div>
                   {/* Active Wars & Peace Table */}
                   {wars.length > 0 && (
                 <div className="bg-rose-950/30 border border-rose-500/40 rounded-2xl p-4 space-y-3">

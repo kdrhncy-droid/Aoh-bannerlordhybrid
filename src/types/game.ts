@@ -262,6 +262,7 @@ export interface Nation {
   capitalTerritoryId: string;
   ideology: IdeologyId;
   treasury: number;
+  diplomacyPoints?: number; // 0-100; replenishes daily and fuels diplomatic actions
   manpower: number;
   stability: number; // 0-100
   inflation: number; // 0-100%

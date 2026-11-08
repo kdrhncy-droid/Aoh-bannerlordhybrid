@@ -946,6 +946,7 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
       writeNation(playerNationId, {
         ...pNation,
         treasury: Math.max(0, pNation.treasury + econ.netDailyGold),
+        diplomacyPoints: Math.min(100, (pNation.diplomacyPoints ?? 100) + 1),
         manpower: pNation.manpower + econ.dailyManpower,
         researchPoints: Number(
           (pNation.researchPoints + econ.dailyResearch).toFixed(1)

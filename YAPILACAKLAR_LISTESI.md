@@ -306,3 +306,9 @@ Bu değişiklik yeni mekanik eklemekten çok mevcut veri modelindeki kopukluğu 
 Kaynak kartlarındaki bonus açıklamaları artık yalnızca görsel metin değil. Her kaynak türünün ülke çapında tek uzmanlaşma bonusu ekonomi hesabına bağlandı: petrol üretim, tahıl manpower, finans merkezi vergi, ticaret boğazı ticaret, yarı iletken/nadir toprak araştırma ve demir-çelik ordu bakım maliyeti etkiliyor. Aynı kaynak türü birden fazla eyalette varsa bonusun sınırsız biçimde katlanmasını önlemek için tür başına bir kez uygulanıyor; eyaletin yerel GDP çarpanı ise korunuyor.
 
 `tradeHub` seviyeleri ayrıca ulusal günlük enflasyon artışını sınırlı biçimde azaltıyor. Böylece bina tanımındaki ekonomi ve istikrar etkisi simülasyonda karşılık buluyor. Doğrulama: `node --import tsx --test src/engine/simulationEngine.test.ts` sonucu **15 test geçti, 0 hata**; production build başarılı.
+
+## AOH3 Karşılaştırmalı Düzeltme 03 — Diplomasi Puanı ve Eylem Koşulları (2026-11-08)
+
+Diplomasi sistemi artık hazine altınıyla sınırsız tıklama modelinden ayrıldı. Uluslara 0–100 arası `diplomacyPoints` havuzu eklendi; oyuncunun puanı günlük +1 yenileniyor. İlişki geliştirme, hakaret, saldırmazlık, askeri geçiş, ticaret, ambargo ve savunma/saldırı paktları artık diplomasi puanı tüketiyor. Pakt imzalama mevcut ilişki koşullarını koruyor.
+
+AOH3 karşılaştırmasıyla savaş ilanı da düzeltildi: hedefle ilişki `-30` veya daha düşük olmadan savaş açılamıyor ve savaş ilanı 10 diplomasi puanı tüketiyor. Diplomasi panelinde puan havuzu, günlük yenilenme, savaş ilişki eşiği ve maliyet görünür hâle getirildi. Doğrulama: `node --import tsx --test src/engine/simulationEngine.test.ts` sonucu **16 test geçti, 0 hata**; production build başarılı.

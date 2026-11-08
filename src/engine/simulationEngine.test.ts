@@ -250,13 +250,26 @@ test('declaring war on a neighboring nation immediately triggers enemy AI mobili
     gameMode: 'EMPIRES_1440',
     nations,
     territories,
-    relations: {},
+    relations: {
+      '348_792': {
+        nationA: '348',
+        nationB: '792',
+        score: -40,
+        isAllied: false,
+        hasNonAggression: false,
+        hasTradeAgreement: false,
+        hasEmbargo: false,
+        hasMilitaryAccess: false,
+        truceUntilTick: 0,
+      },
+    },
     wars: [],
     movements: [],
     newsEvents: [],
   });
 
   assert.equal(warPatch.wars?.length, 1);
+  assert.equal(warPatch.nations?.['792']?.diplomacyPoints, 90);
   // Enemy AI (348 Hungary) must immediately launch a counter-attack movement against 792_sof!
   const enemyCounterMove = warPatch.movements?.find(
     (m) => m.ownerId === '348' && m.toTerritoryId === '792_sof' && m.isAttack
@@ -265,6 +278,60 @@ test('declaring war on a neighboring nation immediately triggers enemy AI mobili
     enemyCounterMove,
     'Enemy nation 348 should launch an active counter-attack upon war declaration'
   );
+});
+
+test('diplomacy blocks war above the AOH3 relation threshold and spends points on improvement', () => {
+  const player = {
+    id: 'P',
+    name: 'Oyuncu',
+    treasury: 1000,
+    diplomacyPoints: 10,
+    isEliminated: false,
+  } as unknown as Nation;
+  const target = {
+    id: 'T',
+    name: 'Hedef',
+    treasury: 1000,
+    isEliminated: false,
+  } as unknown as Nation;
+  const relations = {
+    'P_T': {
+      nationA: 'P',
+      nationB: 'T',
+      score: 0,
+      isAllied: false,
+      hasNonAggression: false,
+      hasTradeAgreement: false,
+      hasEmbargo: false,
+      hasMilitaryAccess: false,
+      truceUntilTick: 0,
+    },
+  };
+  const base = {
+    targetNationId: 'T',
+    playerNationId: 'P',
+    totalPlayerGarrison: 0,
+    tick: 1,
+    gameMode: 'EMPIRES_1440' as const,
+    nations: { P: player, T: target },
+    territories: {},
+    relations,
+    wars: [],
+    movements: [],
+    newsEvents: [],
+  };
+  const blocked = executeDiplomaticActionDomain({
+    ...base,
+    action: 'DECLARE_WAR',
+  });
+  assert.match(blocked.toast || '', /-30/);
+
+  const improved = executeDiplomaticActionDomain({
+    ...base,
+    action: 'IMPROVE',
+  });
+  assert.equal(improved.nations?.P?.diplomacyPoints, 5);
+  assert.equal(improved.relations?.P_T?.score, 20);
 });
 
 test('resolvePeaceDealDomain blocks Day-1 zero-warscore peace exploits and allows peace once warscore is earned', () => {
@@ -1133,4 +1200,3 @@ test('resource specializations and trade hub relief affect national economy', ()
   assert.ok(finance.taxIncome > baseline.taxIncome);
   assert.ok(finance.inflationRelief > 0);
 });
-

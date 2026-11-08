@@ -34,6 +34,31 @@ export interface DomainActionPatch {
   toast?: string;
 }
 
+const DIPLOMACY_POINT_COSTS: Partial<Record<DiplomaticActionType, number>> = {
+  IMPROVE: 5,
+  INSULT: 10,
+  NON_AGGRESSION: 20,
+  MILITARY_ACCESS: 10,
+  TRADE: 10,
+  DEFENSIVE_PACT: 30,
+  OFFENSIVE_PACT: 50,
+  EMBARGO: 15,
+  DECLARE_WAR: 10,
+};
+
+function spendDiplomacyPoints(
+  nation: Nation,
+  cost: number
+): { nation: Nation } | { error: string } {
+  const current = nation.diplomacyPoints ?? 100;
+  if (current < cost) {
+    return {
+      error: `Yetersiz diplomasi puanı: ${cost} gerekli, mevcut ${current.toFixed(0)}.`,
+    };
+  }
+  return { nation: { ...nation, diplomacyPoints: current - cost } };
+}
+
 function prependNews(
   newsEvents: WorldNewsEvent[],
   tick: number,
@@ -92,17 +117,16 @@ export function executeDiplomaticActionDomain(params: {
   const currentRel = getOrCreateRelation(relations, playerNationId, targetNationId);
 
   if (action === 'IMPROVE') {
-    if (playerNation.treasury < 150) {
-      return { toast: 'Diplomatik heyet için 150 Altın gerekli.' };
-    }
+    const spent = spendDiplomacyPoints(
+      playerNation,
+      DIPLOMACY_POINT_COSTS.IMPROVE || 0
+    );
+    if ('error' in spent) return { toast: spent.error };
     sound.playTreaty();
     return {
       nations: {
         ...nations,
-        [playerNationId]: {
-          ...playerNation,
-          treasury: playerNation.treasury - 150,
-        },
+        [playerNationId]: spent.nation,
       },
       relations: {
         ...relations,
@@ -111,13 +135,19 @@ export function executeDiplomaticActionDomain(params: {
           score: Math.min(100, currentRel.score + 20),
         },
       },
-      toast: `${target.name} ile diplomatik ilişkiler +20 gelişti.`,
+      toast: `${target.name} ile diplomatik ilişkiler +20 gelişti (-${DIPLOMACY_POINT_COSTS.IMPROVE} DP).`,
     };
   }
 
   if (action === 'INSULT') {
+    const spent = spendDiplomacyPoints(
+      playerNation,
+      DIPLOMACY_POINT_COSTS.INSULT || 0
+    );
+    if ('error' in spent) return { toast: spent.error };
     sound.playClick();
     return {
+      nations: { ...nations, [playerNationId]: spent.nation },
       relations: {
         ...relations,
         [key]: {
@@ -145,8 +175,13 @@ export function executeDiplomaticActionDomain(params: {
         toast: `${target.name} ile Saldırmazlık Paktı için ilişkinin en az -10 olması gerekir.`,
       };
     }
+    const spent = currentRel.hasNonAggression
+      ? { nation: playerNation }
+      : spendDiplomacyPoints(playerNation, DIPLOMACY_POINT_COSTS.NON_AGGRESSION || 0);
+    if ('error' in spent) return { toast: spent.error };
     sound.playTreaty();
     return {
+      nations: { ...nations, [playerNationId]: spent.nation },
       relations: {
         ...relations,
         [key]: {
@@ -167,8 +202,13 @@ export function executeDiplomaticActionDomain(params: {
         toast: `${target.name} askeri geçiş izni için en az +5 ilişki puanı talep ediyor.`,
       };
     }
+    const spent = currentRel.hasMilitaryAccess
+      ? { nation: playerNation }
+      : spendDiplomacyPoints(playerNation, DIPLOMACY_POINT_COSTS.MILITARY_ACCESS || 0);
+    if ('error' in spent) return { toast: spent.error };
     sound.playTreaty();
     return {
+      nations: { ...nations, [playerNationId]: spent.nation },
       relations: {
         ...relations,
         [key]: {
@@ -192,8 +232,13 @@ export function executeDiplomaticActionDomain(params: {
         toast: `${target.name} ile Serbest Ticaret Anlaşması için en az +5 ilişki puanı gerekir (Mevcut: ${currentRel.score}).`,
       };
     }
+    const spent = currentRel.hasTradeAgreement
+      ? { nation: playerNation }
+      : spendDiplomacyPoints(playerNation, DIPLOMACY_POINT_COSTS.TRADE || 0);
+    if ('error' in spent) return { toast: spent.error };
     sound.playTreaty();
     return {
+      nations: { ...nations, [playerNationId]: spent.nation },
       relations: {
         ...relations,
         [key]: {
@@ -243,8 +288,15 @@ export function executeDiplomaticActionDomain(params: {
       };
     }
 
+    const spent = spendDiplomacyPoints(
+      playerNation,
+      DIPLOMACY_POINT_COSTS.DEFENSIVE_PACT || 0
+    );
+    if ('error' in spent) return { toast: spent.error };
+
     sound.playTreaty();
     return {
+      nations: { ...nations, [playerNationId]: spent.nation },
       relations: {
         ...relations,
         [key]: {
@@ -301,8 +353,15 @@ export function executeDiplomaticActionDomain(params: {
       };
     }
 
+    const spent = spendDiplomacyPoints(
+      playerNation,
+      DIPLOMACY_POINT_COSTS.OFFENSIVE_PACT || 0
+    );
+    if ('error' in spent) return { toast: spent.error };
+
     sound.playTreaty();
     return {
+      nations: { ...nations, [playerNationId]: spent.nation },
       relations: {
         ...relations,
         [key]: {
@@ -326,8 +385,13 @@ export function executeDiplomaticActionDomain(params: {
   }
 
   if (action === 'EMBARGO') {
+    const spent = currentRel.hasEmbargo
+      ? { nation: playerNation }
+      : spendDiplomacyPoints(playerNation, DIPLOMACY_POINT_COSTS.EMBARGO || 0);
+    if ('error' in spent) return { toast: spent.error };
     sound.playClick();
     return {
+      nations: { ...nations, [playerNationId]: spent.nation },
       relations: {
         ...relations,
         [key]: {
@@ -425,6 +489,16 @@ export function executeDiplomaticActionDomain(params: {
 
   if (action === 'DECLARE_WAR') {
     if (isAtWar(wars, playerNationId, targetNationId)) return {};
+    if (currentRel.score > -30) {
+      return {
+        toast: `${target.name} devletine savaş ilanı için ilişki puanı -30 veya daha düşük olmalı (Mevcut: ${currentRel.score}).`,
+      };
+    }
+    const spent = spendDiplomacyPoints(
+      playerNation,
+      DIPLOMACY_POINT_COSTS.DECLARE_WAR || 0
+    );
+    if ('error' in spent) return { toast: spent.error };
     sound.playWarHorn();
     const resolution = resolveWarParticipants(
       playerNationId,
@@ -516,9 +590,13 @@ export function executeDiplomaticActionDomain(params: {
         : attAllyNames.length > 0
         ? `${target.name} hedefine savaş ilan edildi! Saldırı Paktı müttefikleriniz (${attAllyNames.join(', ')}) taarruza katıldı.`
         : `${target.name} devletine resmen savaş ilan edildi!`;
+    const nextNations = {
+      ...(aiCounter?.updatedNations || nations),
+      [playerNationId]: spent.nation,
+    };
 
     return {
-      ...(aiCounter?.updatedNations ? { nations: aiCounter.updatedNations } : {}),
+      nations: nextNations,
       ...(aiCounter?.updatedTerritories
         ? { territories: aiCounter.updatedTerritories }
         : {}),
