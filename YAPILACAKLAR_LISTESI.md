@@ -290,3 +290,9 @@ Bu projenin birinci hedefi, kendi özgün fikirlerini eklemeden önce **Age of H
 Uygulama sırası şöyledir: (1) mevcut build’in AOH3 görsel/UX fark analizi, (2) harita ve HUD bilgi hiyerarşisinin AOH3 standardına çekilmesi, (3) eyalet/ekonomi/diplomasi/ordu panellerinin aynı görsel sistem altında birleştirilmesi, (4) mobil ve dar yatay dokunma akışlarının doğrulanması, (5) pan/zoom/simülasyon performans ölçümlerinin gerçek cihaz ve viewport kayıtlarıyla yapılması, (6) ancak bu temel kabul edildikten sonra özgün oyun fikirlerinin ayrı ve ölçülebilir dilimler hâlinde eklenmesi.
 
 AOH3 parity tamamlanmadan yeni dekoratif efekt, yeni hibrit mekanik veya rastgele görsel yön değişikliği eklenmeyecektir. Her görsel değişiklik için referans ekran, hedeflenen AOH3 davranışı ve mobil/dar yatay etkisi ayrıca belirtilmelidir. 60 FPS gibi performans iddiaları yalnızca ölçüm kaydıyla raporlanacaktır.
+
+## AOH3 Karşılaştırmalı Düzeltme 01 — Eyalet Nüfusu ve Supply Depot (2026-11-08)
+
+İlk tekil öncelik olarak ekonomi döngüsünün eyalet temelini düzelttik. Önceden `Territory.population` yalnızca dünya kurulurken atanıyor ve günlük simülasyonda hiç değişmiyordu. Bu nedenle AOH3 tarzı nüfus → manpower/ekonomi büyümesi kampanya boyunca çalışmıyordu. `src/engine/tickEngine.ts` içinde günlük nüfus büyümesi eklendi; büyüme huzursuzlukla yavaşlıyor ve `supplyDepot` seviyesiyle artıyor. Aynı binanın tanımlı yerel düzen etkisi de günlük huzursuzluk azaltımı olarak bağlandı.
+
+Bu değişiklik yeni mekanik eklemekten çok mevcut veri modelindeki kopukluğu giderir. Production build başarılıdır. TypeScript kontrolü, bu değişiklikle ilgisi olmayan mevcut `geojson` tip paketi/implicit-any hataları nedeniyle tamamlanamamıştır ve ayrı altyapı işi olarak izlenmelidir. Bir sonraki AOH3 karşılaştırma düzeltmesine geçmeden önce bu ekonomi döngüsü için hedefli regresyon testi eklenmelidir.

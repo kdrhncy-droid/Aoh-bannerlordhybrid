@@ -973,6 +973,40 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
         let nextUnrest = t.unrest;
         let nextReligion = t.religion;
         let nextMissionary = t.missionary;
+        const buildings = t.buildings || {
+          factory: 0,
+          barracks: 0,
+          fortress: 0,
+          university: 0,
+          tradeHub: 0,
+          supplyDepot: 0,
+        };
+
+        // Province population is a living economic input. Previously it was
+        // initialized once and never changed, so manpower and GDP could not
+        // organically grow during a campaign. Keep growth modest and let
+        // unrest and supply depots visibly affect the result.
+        const unrestGrowthFactor = Math.max(0.25, 1 - (t.unrest || 0) / 140);
+        const dailyPopulationGrowth =
+          (t.population || 0) *
+          (0.00035 * unrestGrowthFactor + (buildings.supplyDepot || 0) * 0.00008);
+        const nextPopulation = Number(
+          Math.max(0, (t.population || 0) + dailyPopulationGrowth).toFixed(2)
+        );
+        if (nextPopulation !== (t.population || 0)) {
+          tModified = true;
+        }
+
+        // Supply depots now provide their declared daily local order effect;
+        // this is intentionally separate from assimilation and missionary
+        // effects, which are campaign actions with their own progress bars.
+        if ((buildings.supplyDepot || 0) > 0) {
+          nextUnrest = Math.max(
+            0,
+            Number((nextUnrest - buildings.supplyDepot * 0.12).toFixed(2))
+          );
+          tModified = true;
+        }
 
         if (t.constructionQueue && t.constructionQueue.length > 0) {
           const remainingQueue: QueuedBuildingConstruction[] = [];
@@ -1044,6 +1078,7 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
         if (tModified) {
           writeTerritory(t.id, {
             ...t,
+            population: nextPopulation,
             buildings: nextBuildings,
             constructionQueue: nextQueue,
             assimilation: nextAssim,
