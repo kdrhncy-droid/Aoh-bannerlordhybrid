@@ -12,6 +12,7 @@ import {
   GameModeId,
   Nation,
   Territory,
+  ResourceType,
   UnitComposition,
 } from '../types/game';
 import { relationKey } from './worldBuilder';
@@ -37,10 +38,35 @@ export interface NationEconomyBreakdown {
   vassalIncome: number;
   militaryUpkeep: number;
   inflationPenalty: number;
+  inflationRelief: number;
   netDailyGold: number;
   dailyResearch: number;
   dailyManpower: number;
 }
+
+type ResourceEconomicEffect = {
+  taxPct?: number;
+  productionPct?: number;
+  tradePct?: number;
+  researchFlat?: number;
+  manpowerPct?: number;
+  militaryUpkeepReductionPct?: number;
+};
+
+// AOH3-style resource identity: owning the leading source of a resource gives
+// one national specialization bonus. GDP output remains territory-local below.
+const RESOURCE_ECONOMIC_EFFECTS: Partial<
+  Record<ResourceType, ResourceEconomicEffect>
+> = {
+  PETROL: { productionPct: 8 },
+  DOGALGAZ: { productionPct: 6, tradePct: 4 },
+  YARI_ILETKEN: { researchFlat: 2.5 },
+  DEMIR_CELIK: { militaryUpkeepReductionPct: 5 },
+  TAHIL: { manpowerPct: 8 },
+  TICARET_BOGAZI: { tradePct: 12 },
+  NADIR_TOPRAK: { productionPct: 4, researchFlat: 1.5 },
+  FINANS_MERKEZI: { taxPct: 12 },
+};
 
 export function getOrCreateRelation(
   relations: Record<string, DiplomaticRelation>,
@@ -178,6 +204,16 @@ export function calculateNationEconomy(
   let universityOutput = 0;
   let barracksManpower = 0;
   let tradeHubBonus = 0;
+  let tradeHubLevels = 0;
+  const resourceEffects = {
+    taxPct: 0,
+    productionPct: 0,
+    tradePct: 0,
+    researchFlat: 0,
+    manpowerPct: 0,
+    militaryUpkeepReductionPct: 0,
+  };
+  const claimedResourceBonuses = new Set<ResourceType>();
 
   ownedTerritories.forEach((t) => {
     totalPopulation += t.population || 0;
@@ -204,6 +240,19 @@ export function calculateNationEconomy(
     universityOutput += (bld.university || 0) * 4.5;
     barracksManpower += (bld.barracks || 0) * 350;
     tradeHubBonus += (bld.tradeHub || 0) * 0.2;
+    tradeHubLevels += bld.tradeHub || 0;
+
+    const resourceEffect = RESOURCE_ECONOMIC_EFFECTS[t.resource];
+    if (resourceEffect && !claimedResourceBonuses.has(t.resource)) {
+      claimedResourceBonuses.add(t.resource);
+      resourceEffects.taxPct += resourceEffect.taxPct || 0;
+      resourceEffects.productionPct += resourceEffect.productionPct || 0;
+      resourceEffects.tradePct += resourceEffect.tradePct || 0;
+      resourceEffects.researchFlat += resourceEffect.researchFlat || 0;
+      resourceEffects.manpowerPct += resourceEffect.manpowerPct || 0;
+      resourceEffects.militaryUpkeepReductionPct +=
+        resourceEffect.militaryUpkeepReductionPct || 0;
+    }
   });
 
   // Progressive empire scale: 1-3 province countries retain 100%, large 10-20 province empires scale smoothly so economy stays strategic
@@ -230,6 +279,7 @@ export function calculateNationEconomy(
 
   const taxRateFactor = (nation.taxRate || 25) / 25;
   let taxTechMult = 1 + ideology.taxBonus / 100;
+  taxTechMult += resourceEffects.taxPct / 100;
   if (unlockedTechs.includes('eco_1')) taxTechMult += 0.15;
   if (unlockedTechs.includes('eco_4')) taxTechMult += 0.2;
   if (enactedReforms.includes('ref_free_trade_zones')) taxTechMult += 0.2;
@@ -239,6 +289,7 @@ export function calculateNationEconomy(
   );
 
   let prodMult = 1 + ((budget.economy || 25) - 25) * 0.008;
+  prodMult += resourceEffects.productionPct / 100;
   if (unlockedTechs.includes('eco_2')) prodMult += 0.25;
   if (unlockedTechs.includes('sci_2')) prodMult += 0.15;
   if (unlockedTechs.includes('sci_4')) prodMult += 0.35;
@@ -255,7 +306,8 @@ export function calculateNationEconomy(
     }
   });
 
-  let tradeMult = 1 + tradeHubBonus + tradeAgreementCount * 0.14;
+  let tradeMult =
+    1 + tradeHubBonus + tradeAgreementCount * 0.14 + resourceEffects.tradePct / 100;
   if (unlockedTechs.includes('eco_3')) tradeMult += 0.3;
 
   const embargoResistance = unlockedTechs.includes('sci_2') ? 0.5 : 1.0;
@@ -303,6 +355,8 @@ export function calculateNationEconomy(
   const vassalTributeOut = nation.vassalOf ? Math.round(taxIncome * 0.25) : 0;
 
   let upkeepPerThousand = 1.65 * (0.75 + (budget.military || 35) / 100);
+  upkeepPerThousand *=
+    1 - Math.min(0.3, resourceEffects.militaryUpkeepReductionPct / 100);
   if (enactedReforms.includes('ref_professional_army')) {
     upkeepPerThousand *= 0.9;
   }
@@ -323,7 +377,8 @@ export function calculateNationEconomy(
     2.5 +
     Math.min(7.5, ownedTerritories.length * 0.55) +
     universityOutput +
-    (budget.research || 15) * 0.11;
+    (budget.research || 15) * 0.11 +
+    resourceEffects.researchFlat;
   if (enactedReforms.includes('ref_welfare_state')) researchBase += 5;
   let researchMult = 1 + ideology.researchBonus / 100;
   if (unlockedTechs.includes('sci_1')) researchMult += 0.2;
@@ -332,7 +387,8 @@ export function calculateNationEconomy(
 
   const manpowerBase =
     180 + Math.round(totalPopulation * 0.0022 * empireScale) + barracksManpower;
-  let manpowerMult = 1 + ideology.manpowerGrowthBonus / 100;
+  let manpowerMult =
+    1 + ideology.manpowerGrowthBonus / 100 + resourceEffects.manpowerPct / 100;
   if (unlockedTechs.includes('adm_3')) manpowerMult += 0.35;
   const dailyManpower = Math.round(manpowerBase * manpowerMult);
 
@@ -352,6 +408,7 @@ export function calculateNationEconomy(
     vassalIncome,
     militaryUpkeep,
     inflationPenalty,
+    inflationRelief: Math.min(0.2, tradeHubLevels * 0.02),
     netDailyGold,
     dailyResearch,
     dailyManpower,

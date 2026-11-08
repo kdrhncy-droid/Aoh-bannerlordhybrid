@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  calculateNationEconomy,
   formatGameDate,
   getOrCreateRelation,
   isAtWar,
@@ -1068,5 +1069,68 @@ test('startMissionaryDomain initiates conversion and computeGameTick completes i
   assert.equal(relColorAfter, RELIGIONS.ISLAM_SUNNI.color);
 });
 
+test('resource specializations and trade hub relief affect national economy', () => {
+  const nation = {
+    id: 'TEST',
+    name: 'Test Devleti',
+    ideology: 'MONARCHY',
+    treasury: 1000,
+    manpower: 10000,
+    stability: 70,
+    inflation: 12,
+    researchPoints: 0,
+    taxRate: 25,
+    budget: { military: 35, economy: 25, research: 15, welfare: 25 },
+    unlockedTechs: [],
+    enactedReforms: [],
+    recruitedGeneralIds: [],
+    activeGeneralId: null,
+    isEliminated: false,
+  } as unknown as Nation;
+  const baseTerritory = {
+    id: 'T1',
+    name: 'Test Eyaleti',
+    ownerId: 'TEST',
+    coreOwnerId: 'TEST',
+    population: 1000,
+    baseGdp: 100,
+    buildings: { factory: 1, barracks: 1, fortress: 0, university: 0, tradeHub: 0, supplyDepot: 0 },
+    garrison: 1000,
+    units: { infantry: 1000, armor: 0, airDrone: 0 },
+    unrest: 0,
+    isOccupied: false,
+    centroid: [0, 0],
+    neighbors: [],
+  } as unknown as Territory;
 
+  const baseline = calculateNationEconomy(
+    nation,
+    { T1: { ...baseTerritory, resource: 'PETROL' } },
+    { TEST: nation },
+    {},
+    [],
+    []
+  );
+  const grain = calculateNationEconomy(
+    nation,
+    { T1: { ...baseTerritory, resource: 'TAHIL' } },
+    { TEST: nation },
+    {},
+    [],
+    []
+  );
+  const finance = calculateNationEconomy(
+    nation,
+    { T1: { ...baseTerritory, resource: 'FINANS_MERKEZI', buildings: { ...baseTerritory.buildings, tradeHub: 2 } } },
+    { TEST: nation },
+    {},
+    [],
+    []
+  );
+
+  assert.ok(baseline.productionIncome > 0);
+  assert.ok(grain.dailyManpower > baseline.dailyManpower);
+  assert.ok(finance.taxIncome > baseline.taxIncome);
+  assert.ok(finance.inflationRelief > 0);
+});
 

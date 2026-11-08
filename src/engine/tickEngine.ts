@@ -911,7 +911,8 @@ export function computeGameTick(input: GameTickInput): GameTickOutput {
         gameMode
       );
 
-      let infDelta = pNation.taxRate > 38 ? 0.03 : -0.01;
+      let infDelta =
+        (pNation.taxRate > 38 ? 0.03 : -0.01) - econ.inflationRelief;
       if (pNation.enactedReforms.includes('ref_central_bank')) {
         infDelta -= 0.025;
       }

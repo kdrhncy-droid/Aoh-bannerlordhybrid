@@ -300,3 +300,9 @@ Bu değişiklik yeni mekanik eklemekten çok mevcut veri modelindeki kopukluğu 
 ### Düzeltme 01 doğrulaması
 
 `node --import tsx --test src/engine/simulationEngine.test.ts` sonucu: **14 test geçti, 0 hata**. Misyonerlik/asayiş senaryosu artık nüfus büyümesini ve supply depot huzursuzluk etkisini birlikte doğruluyor.
+
+## AOH3 Karşılaştırmalı Düzeltme 02 — Kaynak Uzmanlaşması ve Trade Hub Etkisi (2026-11-08)
+
+Kaynak kartlarındaki bonus açıklamaları artık yalnızca görsel metin değil. Her kaynak türünün ülke çapında tek uzmanlaşma bonusu ekonomi hesabına bağlandı: petrol üretim, tahıl manpower, finans merkezi vergi, ticaret boğazı ticaret, yarı iletken/nadir toprak araştırma ve demir-çelik ordu bakım maliyeti etkiliyor. Aynı kaynak türü birden fazla eyalette varsa bonusun sınırsız biçimde katlanmasını önlemek için tür başına bir kez uygulanıyor; eyaletin yerel GDP çarpanı ise korunuyor.
+
+`tradeHub` seviyeleri ayrıca ulusal günlük enflasyon artışını sınırlı biçimde azaltıyor. Böylece bina tanımındaki ekonomi ve istikrar etkisi simülasyonda karşılık buluyor. Doğrulama: `node --import tsx --test src/engine/simulationEngine.test.ts` sonucu **15 test geçti, 0 hata**; production build başarılı.
