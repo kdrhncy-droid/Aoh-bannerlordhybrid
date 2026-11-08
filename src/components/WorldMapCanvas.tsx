@@ -84,7 +84,6 @@ export const WorldMapCanvas: React.FC<WorldMapCanvasProps> = ({
     fogOfWarEnabled: boolean;
   } | null>(null);
   const lastCenteredKeyRef = useRef<string>('');
-  const lastPerfTransformRef = useRef(transform);
   const [viewportRevision, setViewportRevision] = useState(0);
 
   useEffect(() => {
@@ -158,6 +157,7 @@ export const WorldMapCanvas: React.FC<WorldMapCanvasProps> = ({
       territories,
       onTapClientPoint: handleCanvasTap,
     });
+  const lastPerfTransformRef = useRef(transform);
 
   clickContextRef.current = {
     features,

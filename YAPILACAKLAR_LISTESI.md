@@ -276,3 +276,8 @@ Her Lordun kendine ait bir **Lord Kasası (Altın)** ve **Yönetim Arketipi (Ki�
 Görsel ekran görüntüsü tek başına performans kanıtı değildir. `src/utils/performanceTelemetry.ts` artık son 20 oturum için cihaz/user-agent, platform, donanım paralelliği, cihaz belleği bilgisi, device pixel ratio, viewport genişlik-yükseklik/yön bilgisi, harita etkileşimi (`pan`/`zoom`), örnek süresi, kare sayısı, ölçülen FPS ve dropped-frame oranını `localStorage` içindeki `imperium-performance-telemetry-v1` anahtarında saklar. Simülasyon için de tick örnekleri, ortalama tick süresi, p95 ve maksimum tick süresi kaydedilir.
 
 Bu kayıtlar `WorldMapCanvas` render döngüsüne ve `App` simülasyon tick döngüsüne bağlandı. Bundan sonra 60 FPS, yalnızca gerçek cihaz + gerçek viewport + pan/zoom etkileşimi için alınmış ölçüm kaydı hedef koşulu karşılıyorsa raporlanabilir; mevcut commit için 60 FPS başarı iddiası yapılmamalıdır.
+
+
+### İlk örneklem kaydı — 2026-11-08
+
+İlk çalışan örneklemde kayıt şu şekilde oluştu: viewport `1280×1100`, yön `landscape`, DPR `1`; harita etkileşimi `zoom`, örnek süresi `5001 ms`, `284` kare, ölçülen FPS `56.8`, dropped-frame oranı `0.004`; simülasyon tick ortalaması `650 ms`, p95 `650.2 ms`, maksimum `650.2 ms` ve `6` örnek. Bu kayıt **60 FPS başarı kanıtı değildir**; tersine bu örneklemde 60 FPS’e ulaşılmadığını gösterir. Mobil `896×414` ekran görüntüsü de görsel düzen doğrulamasıdır, performans ölçümü olarak sayılmaz.
